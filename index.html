@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ISA — Returns Since Inception</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+3:wght@300;400;600&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1117;--panel:#141820;--border:#1f2535;--text:#c8cdd8;--muted:#555e72;--bright:#eef0f6;--gold:#d4a843;--silver:#8fa3b8;--bronze:#b87340;--green:#3dba7e;--green2:#27996a;--red:#e05252;--amber:#e8a030;--teal:#40b8c8}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-serif;font-weight:300;line-height:1.5;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 16px 80px}
+.hd{display:grid;grid-template-columns:1fr auto;align-items:end;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--border);margin-bottom:36px}
+.hd-tag{font-family:'Source Code Pro',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+h1{font-family:'Playfair Display',serif;font-size:clamp(30px,6vw,60px);font-weight:900;color:var(--bright);line-height:.92}
+h1 span{color:var(--gold);font-style:italic}
+.hd-meta{font-size:11px;color:var(--muted);margin-top:8px;font-family:'Source Code Pro',monospace}
+.hd-right{text-align:right;flex-shrink:0}
+.hd-big{font-family:'Playfair Display',serif;font-size:clamp(34px,6vw,52px);font-weight:900;line-height:1;color:var(--green)}
+.hd-big-label{font-family:'Source Code Pro',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:40px}
+.kpi{background:var(--panel);padding:16px 12px}
+.kpi-val{font-family:'Playfair Display',serif;font-size:clamp(18px,4vw,26px);font-weight:700;line-height:1;color:var(--bright);margin-bottom:4px}
+.kpi-val.up{color:var(--green)}.kpi-val.dn{color:var(--red)}.kpi-val.go{color:var(--gold)}
+.kpi-lbl{font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sh-num{font-family:'Source Code Pro',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(212,168,67,.4);padding:3px 8px;border-radius:2px;white-space:nowrap}
+h2{font-family:'Playfair Display',serif;font-size:clamp(16px,4vw,21px);font-weight:700;color:var(--bright)}
+.sh-line{flex:1;height:1px;background:var(--border)}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:40px}
+.pod{background:var(--panel);border:1px solid var(--border);padding:20px 16px 16px;position:relative;overflow:hidden}
+.pod::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.pod.p1::after{background:linear-gradient(90deg,#b8860b,#f0d060,#b8860b)}
+.pod.p2::after{background:linear-gradient(90deg,#607080,#a8c0d0,#607080)}
+.pod.p3::after{background:linear-gradient(90deg,#8a5030,#d08050,#8a5030)}
+.pod-medal{font-size:10px;font-family:'Source Code Pro',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.pod.p1 .pod-medal{color:var(--gold)}.pod.p2 .pod-medal{color:var(--silver)}.pod.p3 .pod-medal{color:var(--bronze)}
+.pod-pct{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,52px);font-weight:900;line-height:1;color:var(--green);margin-bottom:6px}
+.pod.p1 .pod-pct{font-size:clamp(40px,6vw,60px)}
+.pod-name{font-size:12px;font-weight:600;color:var(--bright);line-height:1.4;margin-bottom:10px}
+.pod-stats{display:flex;gap:12px;flex-wrap:wrap}
+.pod-stat{display:flex;flex-direction:column;gap:1px}
+.pod-stat-val{font-family:'Source Code Pro',monospace;font-size:11px;color:var(--bright)}
+.pod-stat-lbl{font-family:'Source Code Pro',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.pod-ghost{font-family:'Playfair Display',serif;font-size:80px;font-weight:900;position:absolute;bottom:-12px;right:-4px;line-height:1;opacity:.05;color:var(--bright);pointer-events:none}
+.callout{background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.15);border-left:3px solid var(--gold);padding:14px 16px;margin-bottom:40px;font-size:13px;line-height:1.85;color:var(--text)}
+.callout strong{color:var(--gold)}
+.bar-chart{margin-bottom:40px}
+.bc-head{display:grid;grid-template-columns:1fr 80px 64px 60px;gap:8px;padding:8px 10px;background:var(--border);font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:1px}
+.bc-row{display:grid;grid-template-columns:1fr 80px 64px 60px;gap:8px;padding:7px 10px;background:var(--panel);border-bottom:1px solid var(--border);align-items:center;opacity:0;animation:fadeSlide .4s ease forwards}
+.bc-row:hover{background:#181f2c}
+.bc-row.loss{background:rgba(224,82,82,.04)}
+.bc-name{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-track{height:7px;background:rgba(255,255,255,.06);border-radius:1px}
+.bc-fill{height:100%;border-radius:1px}
+.bc-fill.pos{background:linear-gradient(90deg,var(--green2),var(--green))}
+.bc-fill.hi{background:linear-gradient(90deg,#c07010,var(--gold))}
+.bc-fill.neg{background:linear-gradient(90deg,#9b1c1c,var(--red))}
+.bc-pct{font-family:'Source Code Pro',monospace;font-size:11px;text-align:right}
+.bc-pct.pos{color:var(--green)}.bc-pct.neg{color:var(--red)}
+.bc-gbp{font-family:'Source Code Pro',monospace;font-size:10px;color:var(--muted);text-align:right}
+.bc-name-wrap{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
+.rank-badge{font-family:'Source Code Pro',monospace;font-size:9px;min-width:20px;text-align:center;padding:2px 3px;border-radius:2px;flex-shrink:0}
+.rank-badge.top{background:rgba(212,168,67,.15);color:var(--gold);border:1px solid rgba(212,168,67,.3)}
+.rank-badge.mid{background:rgba(64,184,200,.08);color:var(--teal);border:1px solid rgba(64,184,200,.2)}
+.rank-badge.bot{background:rgba(224,82,82,.1);color:var(--red);border:1px solid rgba(224,82,82,.2)}
+.ann-section{margin-bottom:40px}
+.ann-note{font-size:11px;color:var(--muted);margin-bottom:10px;font-family:'Source Code Pro',monospace}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border)}
+.ann-table,.full-table{width:100%;border-collapse:collapse;font-size:11px;min-width:540px}
+.ann-table th,.full-table th{background:var(--panel);font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:9px 9px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2}
+.ann-table th.num,.full-table th.num{text-align:right;cursor:pointer;user-select:none}
+.ann-table th.num:hover,.full-table th.num:hover{color:var(--gold)}
+.sort-arrow{margin-left:3px;opacity:.4}
+.sort-arrow.active{opacity:1;color:var(--gold)}
+.ann-table td,.full-table td{padding:6px 9px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+.ann-table tr:hover td,.full-table tr:hover td{background:rgba(255,255,255,.02)}
+.ann-table td.num,.full-table td.num{text-align:right;font-family:'Source Code Pro',monospace}
+.cell-pos{color:var(--green);font-family:'Source Code Pro',monospace}
+.cell-neg{color:var(--red);font-family:'Source Code Pro',monospace}
+.cell-na{color:var(--muted);font-family:'Source Code Pro',monospace;font-size:10px}
+.heat-wrap{display:flex;align-items:center;gap:5px;justify-content:flex-end}
+.heat-bar{width:28px;height:4px;border-radius:1px;flex-shrink:0}
+.quad-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:40px}
+.quad-card{background:var(--panel);border:1px solid var(--border);padding:14px}
+.quad-title{font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.quad-card.best .quad-title{color:var(--green)}.quad-card.worst .quad-title{color:var(--red)}
+.quad-card.up-now .quad-title{color:var(--amber)}.quad-card.solid .quad-title{color:var(--teal)}
+.quad-item{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px}
+.quad-item:last-child{border-bottom:none}
+.qi-name{color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px}
+.qi-val{font-family:'Source Code Pro',monospace;font-size:11px;flex-shrink:0;font-weight:500}
+.qi-val.g{color:var(--green)}.qi-val.r{color:var(--red)}.qi-val.a{color:var(--amber)}.qi-val.t{color:var(--teal)}
+.full-section{margin-bottom:40px}
+.ib-wrap{display:flex;align-items:center;gap:6px}
+.ib-track{width:44px;height:4px;background:rgba(255,255,255,.07);border-radius:1px;flex-shrink:0}
+.ib-fill{height:100%;border-radius:1px}
+.ib-fill.p{background:var(--green)}.ib-fill.n{background:var(--red)}.ib-fill.h{background:var(--gold)}
+.tbl-rank{color:var(--muted);font-family:'Source Code Pro',monospace;font-size:10px}
+.mn{font-family:'Source Code Pro',monospace;font-size:11px}.mnr{font-family:'Source Code Pro',monospace;font-size:11px;text-align:right}.mnrm{font-family:'Source Code Pro',monospace;font-size:11px;text-align:right;color:var(--muted)}
+.filter-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.fb{font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:5px 9px;border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;border-radius:2px;-webkit-tap-highlight-color:transparent}
+.fb:hover,.fb.active{border-color:var(--gold);color:var(--gold);background:rgba(212,168,67,.08)}
+.upload-section{border:1px solid var(--border);background:var(--panel);padding:24px 20px;margin-bottom:40px}
+.upload-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--bright);margin-bottom:6px}
+.upload-desc{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.7}
+.upload-zone{border:2px dashed var(--border);border-radius:4px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(212,168,67,.04)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:26px;margin-bottom:8px}
+.upload-zone-text{font-family:'Source Code Pro',monospace;font-size:11px;color:var(--muted)}
+.upload-zone-text strong{color:var(--gold);display:block;margin-bottom:4px;font-size:12px}
+.upload-status{margin-top:12px;font-family:'Source Code Pro',monospace;font-size:11px;padding:10px 12px;border-radius:3px;display:none}
+.upload-status.ok{background:rgba(61,186,126,.1);border:1px solid rgba(61,186,126,.3);color:var(--green)}
+.upload-status.err{background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.3);color:var(--red)}
+.upload-status.loading{background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.2);color:var(--amber)}
+@keyframes fadeSlide{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+@media(max-width:600px){
+  .wrap{padding:18px 10px 60px}
+  .hd{grid-template-columns:1fr;gap:10px}
+  .hd-right{text-align:left}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpis .kpi:last-child{grid-column:1/-1}
+  .podium{grid-template-columns:1fr}
+  .quad-grid{grid-template-columns:1fr}
+  .bc-head,.bc-row{grid-template-columns:1fr 64px 56px}
+  .bc-head>:last-child,.bc-row>:last-child{display:none}
+  .sh-line{display:none}
+  .callout{font-size:12px}
+}
+@media(min-width:601px) and (max-width:900px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .podium{grid-template-columns:1fr 1fr}
+  .podium .pod:last-child{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hd">
+  <div>
+    <div class="hd-tag">Fidelity ISA · Investment Analysis</div>
+    <h1>Returns Since<br><span>Inception</span></h1>
+    <div class="hd-meta" id="hd-meta">01 Mar 2026 · 18:20 GMT · 58 holdings</div>
+  </div>
+  <div class="hd-right">
+    <div class="hd-big" id="top-pct">—</div>
+    <div class="hd-big-label">Highest % since inception</div>
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-val up" id="k-avg">—</div><div class="kpi-lbl">Avg inception gain</div><div class="kpi-sub" id="k-count">—</div></div>
+  <div class="kpi"><div class="kpi-val up" id="k-pos">—</div><div class="kpi-lbl">In profit</div><div class="kpi-sub" id="k-pos-sub">—</div></div>
+  <div class="kpi"><div class="kpi-val dn" id="k-neg">—</div><div class="kpi-lbl">At loss</div><div class="kpi-sub" id="k-neg-sub">—</div></div>
+  <div class="kpi"><div class="kpi-val go" id="k-over50">—</div><div class="kpi-lbl">Over +50%</div><div class="kpi-sub">exceptional</div></div>
+  <div class="kpi"><div class="kpi-val" id="k-median" style="color:var(--teal)">—</div><div class="kpi-lbl">Median gain</div><div class="kpi-sub">central</div></div>
+</div>
+
+<section>
+  <div class="sh"><span class="sh-num">01</span><h2>Top 3 — Highest % Since Inception</h2><div class="sh-line"></div></div>
+  <div class="podium" id="podium"></div>
+</section>
+
+<div class="callout" id="callout"></div>
+
+<section class="bar-chart">
+  <div class="sh"><span class="sh-num">02</span><h2>All Holdings — Ranked by % Gain Since Inception</h2><div class="sh-line"></div></div>
+  <div class="filter-bar">
+    <button class="fb active" onclick="filterChart('all',this)">All</button>
+    <button class="fb" onclick="filterChart('top20',this)">Top 20</button>
+    <button class="fb" onclick="filterChart('pos',this)">Positive</button>
+    <button class="fb" onclick="filterChart('neg',this)">Losses</button>
+    <button class="fb" onclick="filterChart('under10',this)">Under +10%</button>
+  </div>
+  <div class="bc-head">
+    <div>Fund</div><div>Bar</div><div style="text-align:right">%</div><div style="text-align:right">£ G/L</div>
+  </div>
+  <div id="bar-chart-rows"></div>
+</section>
+
+<section class="ann-section">
+  <div class="sh"><span class="sh-num">03</span><h2>Annualised Returns (%)</h2><div class="sh-line"></div></div>
+  <div class="ann-note">Tap any column header to sort · heat bar shows magnitude · — = no data</div>
+  <div class="tbl-scroll">
+    <table class="ann-table">
+      <thead><tr>
+        <th style="min-width:160px">Fund</th>
+        <th class="num" onclick="sortAnn(0)">1yr Ann <span class="sort-arrow active" id="sa0">&#9660;</span></th>
+        <th class="num" onclick="sortAnn(1)">3yr Ann <span class="sort-arrow" id="sa1">&#9660;</span></th>
+        <th class="num" onclick="sortAnn(2)">5yr Ann <span class="sort-arrow" id="sa2">&#9660;</span></th>
+        <th class="num" onclick="sortAnn(3)">10yr Ann <span class="sort-arrow" id="sa3">&#9660;</span></th>
+        <th class="num" onclick="sortAnn(4)">Yr 1 <span class="sort-arrow" id="sa4">&#9660;</span></th>
+        <th class="num" onclick="sortAnn(5)">Yr 2 <span class="sort-arrow" id="sa5">&#9660;</span></th>
+        <th class="num" onclick="sortAnn(6)">Yr 3 <span class="sort-arrow" id="sa6">&#9660;</span></th>
+        <th class="num" onclick="sortAnn(7)">Yr 4 <span class="sort-arrow" id="sa7">&#9660;</span></th>
+        <th class="num" onclick="sortAnn(8)">Yr 5 <span class="sort-arrow" id="sa8">&#9660;</span></th>
+      </tr></thead>
+      <tbody id="ann-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sh"><span class="sh-num">04</span><h2>Performance Quadrants</h2><div class="sh-line"></div></div>
+  <div class="quad-grid" id="quads"></div>
+</section>
+
+<section class="full-section">
+  <div class="sh"><span class="sh-num">05</span><h2>Complete Holdings Table</h2><div class="sh-line"></div></div>
+  <div class="tbl-scroll">
+    <table class="full-table">
+      <thead><tr>
+        <th>#</th><th style="min-width:150px">Fund</th>
+        <th class="num">Inception %</th><th class="num">£ G/L</th>
+        <th class="num">Value</th><th class="num">Book Cost</th>
+        <th class="num">1yr %</th><th class="num">3yr %</th><th class="num">5yr %</th>
+      </tr></thead>
+      <tbody id="full-tbl"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sh"><span class="sh-num">06</span><h2>Update with New Data</h2><div class="sh-line"></div></div>
+  <div class="upload-section">
+    <div class="upload-title">Upload Latest Fidelity Export</div>
+    <div class="upload-desc">Upload a new Fidelity performance .xlsx file to refresh all charts and figures instantly. The file must be a standard Fidelity ISA performance export.</div>
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFile(this.files[0])">
+      <div class="upload-icon">&#128194;</div>
+      <div class="upload-zone-text">
+        <strong>Tap to choose file</strong>
+        .xlsx or .xls &middot; Fidelity performance export
+      </div>
+    </div>
+    <div class="upload-status" id="upload-status"></div>
+  </div>
+</section>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const DEFAULT=[{"name": "AQR Sustainable Delphi Global Equities UCITS RAGF Acc", "value": 1032.44, "book_cost": 1000.0, "gain_gbp": 32.44, "gain_pct": 3.24, "perf_1yr": 19.16, "perf_3yr": 67.55, "perf_5yr": null, "perf_10yr": null, "ann_1yr": 19.16, "ann_3yr": 18.77, "ann_5yr": null, "ann_10yr": null, "yr1": 17.59, "yr2": 22.24, "yr3": 13.69, "yr4": null, "yr5": null}, {"name": "Artemis Monthly Distributions Class I Acc", "value": 1267.51, "book_cost": 1100.0, "gain_gbp": 167.51, "gain_pct": 15.22, "perf_1yr": 30.26, "perf_3yr": 64.93, "perf_5yr": 78.92, "perf_10yr": 148.93, "ann_1yr": 30.26, "ann_3yr": 18.15, "ann_5yr": 12.34, "ann_10yr": 9.55, "yr1": 23.06, "yr2": 15.69, "yr3": 7.03, "yr4": -5.61, "yr5": 14.08}, {"name": "Artemis SmartGARP European Equity Fund Class I Acc", "value": 745.47, "book_cost": 500.0, "gain_gbp": 245.47, "gain_pct": 49.09, "perf_1yr": 53.14, "perf_3yr": 108.21, "perf_5yr": 169.05, "perf_10yr": 281.61, "ann_1yr": 53.14, "ann_3yr": 27.69, "ann_5yr": 21.89, "ann_10yr": 14.33, "yr1": 55.91, "yr2": 16.36, "yr3": 15.09, "yr4": 2.02, "yr5": 19.47}, {"name": "Artemis SmartGARP UK Equity Fund Class I Acc", "value": 1767.54, "book_cost": 1230.0, "gain_gbp": 537.54, "gain_pct": 43.7, "perf_1yr": 44.51, "perf_3yr": 86.87, "perf_5yr": 161.52, "perf_10yr": 271.7, "ann_1yr": 44.51, "ann_3yr": 23.17, "ann_5yr": 21.2, "ann_10yr": 14.03, "yr1": 39.86, "yr2": 24.54, "yr3": 3.57, "yr4": 6.33, "yr5": 30.84}, {"name": "Baillie Gifford Japanese Smaller Companies Fund B Acc", "value": 311.1, "book_cost": 250.0, "gain_gbp": 61.1, "gain_pct": 24.44, "perf_1yr": 18.38, "perf_3yr": -3.08, "perf_5yr": -31.24, "perf_10yr": 58.99, "ann_1yr": 18.38, "ann_3yr": -1.04, "ann_5yr": -7.22, "ann_10yr": 4.75, "yr1": 5.62, "yr2": -9.88, "yr3": -11.26, "yr4": -20.28, "yr5": -14.87}, {"name": "Baillie Gifford Pacific Fund B Acc", "value": 303.23, "book_cost": 250.0, "gain_gbp": 53.23, "gain_pct": 21.29, "perf_1yr": 51.52, "perf_3yr": 69.71, "perf_5yr": 35.87, "perf_10yr": 375.16, "ann_1yr": 51.52, "ann_3yr": 19.28, "ann_5yr": 6.32, "ann_10yr": 16.86, "yr1": 28.83, "yr2": 11.64, "yr3": 0.82, "yr4": -20.19, "yr5": 6.46}, {"name": "Baillie Gifford Positive Change Fund B Acc", "value": 104.54, "book_cost": 64.58, "gain_gbp": 39.96, "gain_pct": 61.87, "perf_1yr": 8.49, "perf_3yr": 22.04, "perf_5yr": 5.85, "perf_10yr": null, "ann_1yr": 8.49, "ann_3yr": 6.86, "ann_5yr": 1.14, "ann_10yr": null, "yr1": 8.78, "yr2": 4.3, "yr3": 9.26, "yr4": -21.88, "yr5": 10.83}, {"name": "Barclays UK Equity Income R Accumulation", "value": 296.76, "book_cost": 250.0, "gain_gbp": 46.76, "gain_pct": 18.7, "perf_1yr": 31.44, "perf_3yr": 51.79, "perf_5yr": 90.15, "perf_10yr": 125.05, "ann_1yr": 31.44, "ann_3yr": 14.92, "ann_5yr": 13.72, "ann_10yr": 8.45, "yr1": 29.0, "yr2": 10.01, "yr3": 5.74, "yr4": 3.18, "yr5": 15.82}, {"name": "Barings Eastern Europe Fund I GBP Acc", "value": 279.65, "book_cost": 275.0, "gain_gbp": 4.65, "gain_pct": 1.69, "perf_1yr": 42.6, "perf_3yr": null, "perf_5yr": -11.75, "perf_10yr": 51.56, "ann_1yr": 42.6, "ann_3yr": null, "ann_5yr": -2.47, "ann_10yr": 4.25, "yr1": 41.01, "yr2": 13.24, "yr3": null, "yr4": null, "yr5": 8.12}, {"name": "Barings Emerging Markets Local Debt Fund - Tranche C GBP Accumulating Shares", "value": 252.35, "book_cost": 250.0, "gain_gbp": 2.35, "gain_pct": 0.94, "perf_1yr": 22.24, "perf_3yr": 37.91, "perf_5yr": 16.57, "perf_10yr": null, "ann_1yr": 22.24, "ann_3yr": 11.31, "ann_5yr": 3.11, "ann_10yr": null, "yr1": 21.38, "yr2": -3.86, "yr3": 13.87, "yr4": -9.92, "yr5": -11.49}, {"name": "Barings Global Agriculture Fd I GBP Acc", "value": 247.2, "book_cost": 250.0, "gain_gbp": -2.8, "gain_pct": -1.12, "perf_1yr": 11.53, "perf_3yr": -14.83, "perf_5yr": 15.05, "perf_10yr": 107.79, "ann_1yr": 11.53, "ann_3yr": -5.21, "ann_5yr": 2.84, "ann_10yr": 7.59, "yr1": 1.43, "yr2": -9.18, "yr3": -16.14, "yr4": 14.85, "yr5": 26.67}, {"name": "Barings Global Resources Fund I GBP Acc", "value": 299.98, "book_cost": 275.0, "gain_gbp": 24.98, "gain_pct": 9.08, "perf_1yr": 38.35, "perf_3yr": 39.75, "perf_5yr": 96.05, "perf_10yr": 183.69, "ann_1yr": 38.35, "ann_3yr": 11.8, "ann_5yr": 14.41, "ann_10yr": 10.99, "yr1": 23.59, "yr2": -3.27, "yr3": -1.86, "yr4": 23.95, "yr5": 19.43}, {"name": "BlackRock Natural Resources D Acc", "value": 294.98, "book_cost": 275.0, "gain_gbp": 19.98, "gain_pct": 7.26, "perf_1yr": 39.42, "perf_3yr": 33.13, "perf_5yr": 110.57, "perf_10yr": 258.71, "ann_1yr": 39.42, "ann_3yr": 10.01, "ann_5yr": 16.06, "ann_10yr": 13.63, "yr1": 22.65, "yr2": -2.61, "yr3": -6.65, "yr4": 32.69, "yr5": 30.09}, {"name": "BNY Mellon UK Income Fund Inst W Acc", "value": 268.07, "book_cost": 250.0, "gain_gbp": 18.07, "gain_pct": 7.22, "perf_1yr": 30.52, "perf_3yr": 58.25, "perf_5yr": 118.64, "perf_10yr": 167.72, "ann_1yr": 30.52, "ann_3yr": 16.53, "ann_5yr": 16.94, "ann_10yr": 10.35, "yr1": 29.59, "yr2": 11.18, "yr3": 10.0, "yr4": 9.47, "yr5": 16.36}, {"name": "FAST - Global Fund Y-PF-ACC-GBP", "value": 2777.46, "book_cost": 2100.0, "gain_gbp": 677.46, "gain_pct": 32.26, "perf_1yr": 6.51, "perf_3yr": 14.67, "perf_5yr": 86.16, "perf_10yr": 238.0, "ann_1yr": 6.51, "ann_3yr": 4.67, "ann_5yr": 13.23, "ann_10yr": 12.95, "yr1": 4.0, "yr2": -3.07, "yr3": 11.28, "yr4": 29.22, "yr5": 28.76}, {"name": "Fidelity Funds - Global Industrials Fund W-ACC-GBP", "value": 257.6, "book_cost": 250.0, "gain_gbp": 7.6, "gain_pct": 3.04, "perf_1yr": 26.69, "perf_3yr": 57.24, "perf_5yr": 125.33, "perf_10yr": 292.44, "ann_1yr": 26.69, "ann_3yr": 16.28, "ann_5yr": 17.64, "ann_10yr": 14.65, "yr1": 11.61, "yr2": 11.54, "yr3": 15.65, "yr4": 12.46, "yr5": 21.06}, {"name": "Fidelity Multi Asset Income & Growth Fund W Accumulation Shares", "value": 261.56, "book_cost": 250.0, "gain_gbp": 11.56, "gain_pct": 4.62, "perf_1yr": 30.44, "perf_3yr": 47.03, "perf_5yr": 45.43, "perf_10yr": 94.55, "ann_1yr": 30.44, "ann_3yr": 13.71, "ann_5yr": 7.78, "ann_10yr": 6.88, "yr1": 18.88, "yr2": 6.43, "yr3": 5.26, "yr4": -8.83, "yr5": 5.9}, {"name": "Fidelity UK Smaller Companies Fund W-Accumulation", "value": 135.15, "book_cost": 100.0, "gain_gbp": 35.15, "gain_pct": 35.15, "perf_1yr": 19.02, "perf_3yr": 24.6, "perf_5yr": 56.41, "perf_10yr": 154.49, "ann_1yr": 19.02, "ann_3yr": 7.61, "ann_5yr": 9.36, "ann_10yr": 9.79, "yr1": 9.41, "yr2": 4.52, "yr3": 10.25, "yr4": -8.28, "yr5": 34.54}, {"name": "Fiera Emerging Markets B Inc", "value": 306.49, "book_cost": 250.0, "gain_gbp": 56.49, "gain_pct": 22.59, "perf_1yr": 59.33, "perf_3yr": 86.47, "perf_5yr": 75.05, "perf_10yr": 212.74, "ann_1yr": 59.33, "ann_3yr": 23.08, "ann_5yr": 11.85, "ann_10yr": 12.08, "yr1": 34.89, "yr2": 8.17, "yr3": 12.53, "yr4": -13.27, "yr5": 4.44}, {"name": "FP Foresight UK Infrastructure Income Fund A Accumulation", "value": 593.59, "book_cost": 505.76, "gain_gbp": 87.83, "gain_pct": 17.36, "perf_1yr": 15.65, "perf_3yr": -0.1, "perf_5yr": 1.0, "perf_10yr": null, "ann_1yr": 15.65, "ann_3yr": -0.03, "ann_5yr": 0.2, "ann_10yr": null, "yr1": 6.22, "yr2": -5.63, "yr3": -7.73, "yr4": -4.54, "yr5": 6.1}, {"name": "FTGF Royce US Small Cap Opportunity Fund X GBP Acc", "value": 286.43, "book_cost": 250.0, "gain_gbp": 36.43, "gain_pct": 14.57, "perf_1yr": 23.29, "perf_3yr": 31.89, "perf_5yr": 53.85, "perf_10yr": 294.25, "ann_1yr": 23.29, "ann_3yr": 9.67, "ann_5yr": 9.0, "ann_10yr": 14.7, "yr1": 3.84, "yr2": 12.24, "yr3": 12.97, "yr4": -7.19, "yr5": 30.75}, {"name": "IFSL Marlborough Far East Growth Fund P Acc", "value": 279.59, "book_cost": 250.0, "gain_gbp": 29.59, "gain_pct": 11.83, "perf_1yr": 56.56, "perf_3yr": 82.45, "perf_5yr": 58.03, "perf_10yr": 204.88, "ann_1yr": 56.56, "ann_3yr": 22.19, "ann_5yr": 9.58, "ann_10yr": 11.79, "yr1": 26.29, "yr2": 15.46, "yr3": 0.59, "yr4": -17.86, "yr5": 10.82}, {"name": "IFSL Marlborough UK Micro-Cap Growth Fund P Acc", "value": 511.16, "book_cost": 505.87, "gain_gbp": 5.29, "gain_pct": 1.04, "perf_1yr": 21.15, "perf_3yr": 17.98, "perf_5yr": -5.13, "perf_10yr": 108.51, "ann_1yr": 21.15, "ann_3yr": 5.67, "ann_5yr": -1.05, "ann_10yr": 7.62, "yr1": 9.02, "yr2": 7.15, "yr3": -6.15, "yr4": -33.77, "yr5": 24.69}, {"name": "Invesco Global Consumer Trends Fund Z Accumulation GBP", "value": 1444.95, "book_cost": 1289.33, "gain_gbp": 155.62, "gain_pct": 12.06, "perf_1yr": 4.15, "perf_3yr": 43.33, "perf_5yr": -9.93, "perf_10yr": null, "ann_1yr": 4.15, "ann_3yr": 12.75, "ann_5yr": -2.07, "ann_10yr": null, "yr1": 13.93, "yr2": 28.16, "yr3": 19.76, "yr4": -37.97, "yr5": -6.13}, {"name": "JOHCM UK Equity Income Fund Y Acc", "value": 393.44, "book_cost": 275.0, "gain_gbp": 118.44, "gain_pct": 43.06, "perf_1yr": 33.11, "perf_3yr": 59.82, "perf_5yr": 101.42, "perf_10yr": 174.31, "ann_1yr": 33.11, "ann_3yr": 16.92, "ann_5yr": 15.03, "ann_10yr": 10.62, "yr1": 24.3, "yr2": 20.1, "yr3": 6.1, "yr4": -0.75, "yr5": 24.93}, {"name": "JPM Emerging Europe Equity II Fund C - Net Accumulation", "value": 282.61, "book_cost": 275.0, "gain_gbp": 7.61, "gain_pct": 2.76, "perf_1yr": 46.91, "perf_3yr": 118.43, "perf_5yr": null, "perf_10yr": null, "ann_1yr": 46.91, "ann_3yr": 29.75, "ann_5yr": null, "ann_10yr": null, "yr1": 42.57, "yr2": 8.11, "yr3": 33.44, "yr4": null, "yr5": null}, {"name": "Jupiter Gold & Silver Fund P2 GBP ACC", "value": 84.36, "book_cost": 50.0, "gain_gbp": 34.36, "gain_pct": 68.72, "perf_1yr": 193.89, "perf_3yr": 337.9, "perf_5yr": 251.87, "perf_10yr": null, "ann_1yr": 193.89, "ann_3yr": 63.6, "ann_5yr": 28.61, "ann_10yr": null, "yr1": 169.27, "yr2": 22.84, "yr3": -6.22, "yr4": -1.72, "yr5": -14.84}, {"name": "Jupiter Merian Global Equity Absolute Return I GBP Hedged Acc", "value": 2412.72, "book_cost": 2100.0, "gain_gbp": 312.72, "gain_pct": 14.89, "perf_1yr": 13.41, "perf_3yr": 41.47, "perf_5yr": 76.12, "perf_10yr": 66.43, "ann_1yr": 13.41, "ann_3yr": 12.26, "ann_5yr": 11.99, "ann_10yr": 5.23, "yr1": 16.55, "yr2": 10.84, "yr3": 9.3, "yr4": 9.07, "yr5": 18.65}, {"name": "Jupiter Monthly Alternative Income Fund I Acc", "value": 588.76, "book_cost": 500.0, "gain_gbp": 88.76, "gain_pct": 17.75, "perf_1yr": 12.23, "perf_3yr": 4.58, "perf_5yr": 7.79, "perf_10yr": 55.84, "ann_1yr": 12.23, "ann_3yr": 1.5, "ann_5yr": 1.51, "ann_10yr": 4.54, "yr1": 7.08, "yr2": 1.71, "yr3": -7.54, "yr4": -10.22, "yr5": 17.73}, {"name": "Landseer Global Artificial Intelligence Fund I Acc", "value": 131.47, "book_cost": 64.95, "gain_gbp": 66.52, "gain_pct": 102.41, "perf_1yr": 10.1, "perf_3yr": 69.02, "perf_5yr": 64.03, "perf_10yr": null, "ann_1yr": 10.1, "ann_3yr": 19.12, "ann_5yr": 10.4, "ann_10yr": null, "yr1": 7.76, "yr2": 26.39, "yr3": 37.0, "yr4": -22.72, "yr5": 15.07}, {"name": "M&G Recovery Fund I Acc", "value": 341.47, "book_cost": 292.96, "gain_gbp": 48.51, "gain_pct": 16.55, "perf_1yr": 31.43, "perf_3yr": 44.63, "perf_5yr": 49.36, "perf_10yr": 92.13, "ann_1yr": 31.43, "ann_3yr": 13.09, "ann_5yr": 8.35, "ann_10yr": 6.75, "yr1": 22.53, "yr2": 14.21, "yr3": 2.17, "yr4": -10.55, "yr5": 13.5}, {"name": "M&G Smaller Companies Fund I Acc", "value": 1063.47, "book_cost": 1049.96, "gain_gbp": 13.51, "gain_pct": 1.28, "perf_1yr": 11.88, "perf_3yr": 11.11, "perf_5yr": 5.91, "perf_10yr": 67.37, "ann_1yr": 11.88, "ann_3yr": 3.57, "ann_5yr": 1.16, "ann_10yr": 5.29, "yr1": 0.75, "yr2": 6.77, "yr3": -0.76, "yr4": -23.82, "yr5": 21.72}, {"name": "Man Income Fund Prof Acc C", "value": 522.44, "book_cost": 500.0, "gain_gbp": 22.44, "gain_pct": 4.48, "perf_1yr": 33.1, "perf_3yr": 62.26, "perf_5yr": 110.75, "perf_10yr": 191.89, "ann_1yr": 33.1, "ann_3yr": 17.51, "ann_5yr": 16.08, "ann_10yr": 11.31, "yr1": 27.06, "yr2": 11.72, "yr3": 12.13, "yr4": 4.96, "yr5": 15.1}, {"name": "MI TwentyFour AM Dynamic Bond Fund I Acc shares", "value": 253.23, "book_cost": 250.0, "gain_gbp": 3.23, "gain_pct": 1.29, "perf_1yr": 6.76, "perf_3yr": 26.38, "perf_5yr": 14.98, "perf_10yr": 57.14, "ann_1yr": 6.76, "ann_3yr": 8.12, "ann_5yr": 2.83, "ann_10yr": 4.62, "yr1": 7.26, "yr2": 9.07, "yr3": 9.6, "yr4": -13.26, "yr5": 2.13}, {"name": "Mirabaud Discovery Europe ex UK D Acc", "value": 324.66, "book_cost": 246.87, "gain_gbp": 77.79, "gain_pct": 31.51, "perf_1yr": 31.51, "perf_3yr": 62.52, "perf_5yr": 81.86, "perf_10yr": 224.06, "ann_1yr": 31.51, "ann_3yr": 17.57, "ann_5yr": 12.71, "ann_10yr": 12.48, "yr1": 36.65, "yr2": 12.92, "yr3": 3.94, "yr4": -21.34, "yr5": 37.37}, {"name": "Ninety One UK Special Situations Fund J Acc", "value": 1551.85, "book_cost": 1342.99, "gain_gbp": 208.86, "gain_pct": 15.55, "perf_1yr": 32.55, "perf_3yr": 85.29, "perf_5yr": 123.12, "perf_10yr": 194.9, "ann_1yr": 32.55, "ann_3yr": 22.82, "ann_5yr": 17.41, "ann_10yr": 11.42, "yr1": 28.97, "yr2": 20.85, "yr3": 27.47, "yr4": -4.8, "yr5": 14.37}, {"name": "Premier MI Miton Cautious Monthly Income Fund B Accumulation", "value": 533.23, "book_cost": 500.0, "gain_gbp": 33.23, "gain_pct": 6.64, "perf_1yr": 26.85, "perf_3yr": 45.99, "perf_5yr": 54.36, "perf_10yr": 105.44, "ann_1yr": 26.85, "ann_3yr": 13.44, "ann_5yr": 9.07, "ann_10yr": 7.47, "yr1": 19.71, "yr2": 6.84, "yr3": 6.03, "yr4": -4.8, "yr5": 9.96}, {"name": "Redwheel UK Climate Engagement R Acc", "value": 274.56, "book_cost": 252.56, "gain_gbp": 22.0, "gain_pct": 8.71, "perf_1yr": null, "perf_3yr": null, "perf_5yr": null, "perf_10yr": null, "ann_1yr": null, "ann_3yr": null, "ann_5yr": null, "ann_10yr": null, "yr1": null, "yr2": null, "yr3": null, "yr4": null, "yr5": null}, {"name": "RobecoSAM Smart Materials Equities I GBP Acc", "value": 288.99, "book_cost": 250.0, "gain_gbp": 38.99, "gain_pct": 15.59, "perf_1yr": 55.42, "perf_3yr": 43.05, "perf_5yr": 53.0, "perf_10yr": 239.43, "ann_1yr": 55.42, "ann_3yr": 12.68, "ann_5yr": 8.88, "ann_10yr": 13.0, "yr1": 20.91, "yr2": -5.95, "yr3": 9.41, "yr4": -16.13, "yr5": 17.65}, {"name": "Royal London Asia Pacific ex Japan Equity Tilt Fund Z Acc", "value": 330.5, "book_cost": 250.0, "gain_gbp": 80.5, "gain_pct": 32.2, "perf_1yr": 59.93, "perf_3yr": 85.17, "perf_5yr": 91.67, "perf_10yr": 281.58, "ann_1yr": 59.93, "ann_3yr": 22.8, "ann_5yr": 13.9, "ann_10yr": 14.33, "yr1": 30.07, "yr2": 7.48, "yr3": 8.37, "yr4": -5.37, "yr5": 8.05}, {"name": "Royal London Short Duration Credit M Acc", "value": 3052.41, "book_cost": 3000.0, "gain_gbp": 52.41, "gain_pct": 1.74, "perf_1yr": 8.21, "perf_3yr": 26.91, "perf_5yr": 21.96, "perf_10yr": null, "ann_1yr": 8.21, "ann_3yr": 8.27, "ann_5yr": 4.05, "ann_10yr": null, "yr1": 8.37, "yr2": 7.31, "yr3": 9.34, "yr4": -6.91, "yr5": 1.09}, {"name": "Royal London Short Duration Global Index Linked M Inc", "value": 252.98, "book_cost": 250.0, "gain_gbp": 2.98, "gain_pct": 1.19, "perf_1yr": 5.7, "perf_3yr": 15.19, "perf_5yr": 15.0, "perf_10yr": 28.15, "ann_1yr": 5.7, "ann_3yr": 4.83, "ann_5yr": 2.84, "ann_10yr": 2.51, "yr1": 5.45, "yr2": 1.9, "yr3": 5.47, "yr4": -5.42, "yr5": 4.59}, {"name": "Schroder Global Alternative Energy Z Acc", "value": 1917.78, "book_cost": 1538.96, "gain_gbp": 378.82, "gain_pct": 24.61, "perf_1yr": 38.86, "perf_3yr": -15.24, "perf_5yr": -6.55, "perf_10yr": null, "ann_1yr": 38.86, "ann_3yr": -5.36, "ann_5yr": -1.35, "ann_10yr": null, "yr1": 29.31, "yr2": -26.15, "yr3": -14.1, "yr4": 5.58, "yr5": -2.95}, {"name": "Schroder ISF Emerging Europe A Distribution GBP AV", "value": 279.07, "book_cost": 275.0, "gain_gbp": 4.07, "gain_pct": 1.48, "perf_1yr": 37.07, "perf_3yr": 113.11, "perf_5yr": -4.43, "perf_10yr": 89.89, "ann_1yr": 37.07, "ann_3yr": 28.69, "ann_5yr": -0.9, "ann_10yr": 6.62, "yr1": 35.63, "yr2": 13.16, "yr3": 36.64, "yr4": null, "yr5": 22.3}, {"name": "Schroder UK Smaller Companies Fund Z Accumulation", "value": 1582.23, "book_cost": 1399.52, "gain_gbp": 182.71, "gain_pct": 13.05, "perf_1yr": 24.32, "perf_3yr": 29.78, "perf_5yr": 6.24, "perf_10yr": 102.93, "ann_1yr": 24.32, "ann_3yr": 9.08, "ann_5yr": 1.22, "ann_10yr": 7.33, "yr1": 9.47, "yr2": 12.57, "yr3": 0.33, "yr4": -25.41, "yr5": 14.36}, {"name": "SVS Dowgate Cape Wrath Focus B Net Accumulation", "value": 1140.12, "book_cost": 1098.08, "gain_gbp": 42.04, "gain_pct": 3.82, "perf_1yr": 8.28, "perf_3yr": 17.05, "perf_5yr": 28.43, "perf_10yr": null, "ann_1yr": 8.28, "ann_3yr": 5.39, "ann_5yr": 5.13, "ann_10yr": null, "yr1": 10.28, "yr2": 2.99, "yr3": 14.28, "yr4": -11.93, "yr5": 29.08}, {"name": "TM Gravis UK Infrastructure Income C Net Acc", "value": 965.28, "book_cost": 850.0, "gain_gbp": 115.28, "gain_pct": 13.56, "perf_1yr": 15.86, "perf_3yr": 1.03, "perf_5yr": 8.47, "perf_10yr": 48.38, "ann_1yr": 15.86, "ann_3yr": 0.34, "ann_5yr": 1.64, "ann_10yr": 4.02, "yr1": 8.66, "yr2": -6.34, "yr3": -5.77, "yr4": -3.54, "yr5": 11.04}, {"name": "TM Redwheel UK Equity Income Fund R Acc", "value": 348.77, "book_cost": 250.0, "gain_gbp": 98.77, "gain_pct": 39.5, "perf_1yr": 26.3, "perf_3yr": 61.47, "perf_5yr": 103.29, "perf_10yr": null, "ann_1yr": 26.3, "ann_3yr": 17.32, "ann_5yr": 15.24, "ann_10yr": null, "yr1": 27.61, "yr2": 21.22, "yr3": 10.06, "yr4": -1.47, "yr5": 24.8}, {"name": "TM Stonehage Fleming Aim Fund B Inc", "value": 924.8, "book_cost": 1100.3, "gain_gbp": -175.5, "gain_pct": -15.96, "perf_1yr": 15.91, "perf_3yr": -4.45, "perf_5yr": -10.46, "perf_10yr": 166.92, "ann_1yr": 15.91, "ann_3yr": -1.51, "ann_5yr": -2.19, "ann_10yr": 10.32, "yr1": 5.15, "yr2": -2.56, "yr3": -12.83, "yr4": -15.91, "yr5": 27.12}, {"name": "UBS UK Equity Income C Acc", "value": 535.42, "book_cost": 472.27, "gain_gbp": 63.15, "gain_pct": 13.37, "perf_1yr": 29.98, "perf_3yr": 51.3, "perf_5yr": 111.76, "perf_10yr": 166.56, "ann_1yr": 29.98, "ann_3yr": 14.8, "ann_5yr": 16.19, "ann_10yr": 10.3, "yr1": 25.99, "yr2": 10.49, "yr3": 6.48, "yr4": 10.49, "yr5": 24.33}, {"name": "Veritas Asian Fund A GBP", "value": 298.48, "book_cost": 250.0, "gain_gbp": 48.48, "gain_pct": 19.39, "perf_1yr": 51.92, "perf_3yr": 52.51, "perf_5yr": 22.63, "perf_10yr": 242.58, "ann_1yr": 51.92, "ann_3yr": 15.11, "ann_5yr": 4.16, "ann_10yr": 13.1, "yr1": 29.52, "yr2": 7.9, "yr3": -10.87, "yr4": -17.8, "yr5": -0.92}, {"name": "Vontobel Fund - TwentyFour Strategic Income Fund N GBP", "value": 252.5, "book_cost": 250.0, "gain_gbp": 2.5, "gain_pct": 1.0, "perf_1yr": 6.61, "perf_3yr": 26.14, "perf_5yr": 15.65, "perf_10yr": 57.43, "ann_1yr": 6.61, "ann_3yr": 8.05, "ann_5yr": 2.95, "ann_10yr": 4.64, "yr1": 7.14, "yr2": 8.99, "yr3": 9.84, "yr4": -12.77, "yr5": 2.1}, {"name": "VT Woodhill UK Equity Strategic Fund Net Income Shares GBP Inc", "value": 1054.38, "book_cost": 1000.0, "gain_gbp": 54.38, "gain_pct": 5.43, "perf_1yr": 13.39, "perf_3yr": 40.39, "perf_5yr": 55.27, "perf_10yr": 60.63, "ann_1yr": 13.39, "ann_3yr": 11.97, "ann_5yr": 9.2, "ann_10yr": 4.85, "yr1": 13.5, "yr2": 6.41, "yr3": 16.46, "yr4": 5.34, "yr5": 5.51}, {"name": "WS Amati Strategic Metals Fund B Acc", "value": 363.74, "book_cost": 100.0, "gain_gbp": 263.74, "gain_pct": 263.74, "perf_1yr": 206.52, "perf_3yr": 149.43, "perf_5yr": null, "perf_10yr": null, "ann_1yr": 206.52, "ann_3yr": 35.62, "ann_5yr": null, "ann_10yr": null, "yr1": 162.09, "yr2": -7.1, "yr3": -19.65, "yr4": -5.11, "yr5": null}, {"name": "WS Ardtur Continental European Fund P Inst Acc", "value": 309.98, "book_cost": 250.0, "gain_gbp": 59.98, "gain_pct": 23.99, "perf_1yr": 42.02, "perf_3yr": 65.7, "perf_5yr": 131.38, "perf_10yr": 274.77, "ann_1yr": 42.02, "ann_3yr": 18.33, "ann_5yr": 18.27, "ann_10yr": 14.12, "yr1": 41.27, "yr2": -1.34, "yr3": 17.6, "yr4": 12.32, "yr5": 15.69}, {"name": "WS Keyridge UK Equity and Bond Income C Acc", "value": 263.64, "book_cost": 250.0, "gain_gbp": 13.64, "gain_pct": 5.45, "perf_1yr": 24.35, "perf_3yr": 40.89, "perf_5yr": 71.66, "perf_10yr": 112.77, "ann_1yr": 24.35, "ann_3yr": 12.11, "ann_5yr": 11.41, "ann_10yr": 7.84, "yr1": 22.23, "yr2": 5.9, "yr3": 6.32, "yr4": 3.79, "yr5": 13.79}, {"name": "WS Keyridge UK Equity Income C Acc", "value": 267.5, "book_cost": 250.0, "gain_gbp": 17.5, "gain_pct": 7.0, "perf_1yr": 28.45, "perf_3yr": 49.96, "perf_5yr": 92.71, "perf_10yr": 119.64, "ann_1yr": 28.45, "ann_3yr": 14.46, "ann_5yr": 14.02, "ann_10yr": 8.19, "yr1": 25.2, "yr2": 8.8, "yr3": 5.97, "yr4": 6.74, "yr5": 16.83}, {"name": "YFS Charteris Gold and Precious Metals Fund I Accumulation", "value": 88.99, "book_cost": 50.0, "gain_gbp": 38.99, "gain_pct": 77.98, "perf_1yr": 201.57, "perf_3yr": 250.06, "perf_5yr": 132.15, "perf_10yr": 438.17, "ann_1yr": 201.57, "ann_3yr": 51.84, "ann_5yr": 18.35, "ann_10yr": 18.33, "yr1": 165.41, "yr2": 7.53, "yr3": -16.74, "yr4": -13.86, "yr5": -22.03}];
+
+let funds=[], annSortCol=0, annSortDir=-1;
+
+function short(n){return n.replace(/ Fund| Accumulation| Acc| Inc| Class I| Class B| GBP| \(UK\)/gi,'').replace(/\s+/g,' ').trim().slice(0,42)}
+function fmtPct(v){
+  if(v===null||v===undefined)return '<span class="cell-na">&#8212;</span>';
+  return '<span class="'+(v>=0?'cell-pos':'cell-neg')+'">'+(v>=0?'+':'')+Number(v).toFixed(1)+'%</span>';
+}
+function heatColor(v){
+  if(v===null)return 'background:rgba(255,255,255,.05)';
+  if(v>=30)return 'background:rgba(61,186,126,.65)';
+  if(v>=15)return 'background:rgba(61,186,126,.38)';
+  if(v>=5)return 'background:rgba(61,186,126,.2)';
+  if(v>=0)return 'background:rgba(61,186,126,.08)';
+  if(v>=-10)return 'background:rgba(224,82,82,.28)';
+  return 'background:rgba(224,82,82,.58)';
+}
+
+function render(data){
+  funds=[...data].sort((a,b)=>b.gain_pct-a.gain_pct);
+  const pcts=funds.map(f=>f.gain_pct).filter(v=>v!==null);
+  const avg=(pcts.reduce((a,b)=>a+b,0)/pcts.length).toFixed(1);
+  const pos=funds.filter(f=>f.gain_pct>0).length;
+  const neg=funds.filter(f=>f.gain_pct<0).length;
+  const over50=funds.filter(f=>f.gain_pct>=50).length;
+  const sp=[...pcts].sort((a,b)=>a-b);
+  const median=sp[Math.floor(sp.length/2)].toFixed(1);
+
+  document.getElementById('top-pct').textContent='+'+funds[0].gain_pct.toFixed(1)+'%';
+  document.getElementById('k-avg').textContent=(avg>0?'+':'')+avg+'%';
+  document.getElementById('k-count').textContent=funds.length+' holdings';
+  document.getElementById('k-pos').textContent=pos;
+  document.getElementById('k-pos-sub').textContent=Math.round(pos/funds.length*100)+'% of holdings';
+  document.getElementById('k-neg').textContent=neg;
+  document.getElementById('k-neg-sub').textContent=neg+' underwater';
+  document.getElementById('k-over50').textContent=over50;
+  document.getElementById('k-median').textContent=(median>0?'+':'')+median+'%';
+
+  const podEl=document.getElementById('podium');podEl.innerHTML='';
+  ['p1','p2','p3'].forEach((cls,i)=>{
+    const f=funds[i],lb=['&#127944; Gold &#8212; #1','&#127945; Silver &#8212; #2','&#127946; Bronze &#8212; #3'];
+    podEl.innerHTML+='<div class="pod '+cls+'"><div class="pod-ghost">'+(i+1)+'</div><div class="pod-medal">'+lb[i]+'</div><div class="pod-pct">+'+f.gain_pct.toFixed(1)+'%</div><div class="pod-name">'+short(f.name)+'</div><div class="pod-stats"><div class="pod-stat"><div class="pod-stat-val">&#163;'+f.gain_gbp.toFixed(0)+'</div><div class="pod-stat-lbl">&#163; gain</div></div><div class="pod-stat"><div class="pod-stat-val">&#163;'+f.value.toFixed(0)+'</div><div class="pod-stat-lbl">value</div></div><div class="pod-stat"><div class="pod-stat-val">&#163;'+f.book_cost.toFixed(0)+'</div><div class="pod-stat-lbl">cost</div></div>'+(f.perf_1yr?'<div class="pod-stat"><div class="pod-stat-val">'+(f.perf_1yr>0?'+':'')+f.perf_1yr+'%</div><div class="pod-stat-lbl">1-yr</div></div>':'')+'</div></div>';
+  });
+
+  const nf=funds.filter(f=>f.gain_pct<0).map(f=>short(f.name)+' ('+f.gain_pct.toFixed(1)+'%)').join(', ');
+  document.getElementById('callout').innerHTML='<strong>'+short(funds[0].name)+'</strong> leads at <strong>+'+funds[0].gain_pct.toFixed(1)+'%</strong> since inception. <strong>'+short(funds[1].name)+' (+'+funds[1].gain_pct.toFixed(1)+'%)</strong> and <strong>'+short(funds[2].name)+' (+'+funds[2].gain_pct.toFixed(1)+'%)</strong> complete the top three. '+(neg>0?'Only <strong>'+neg+'</strong> holding'+(neg!==1?'s':'')+' underwater: '+nf+'.':'All holdings in profit since inception.');
+
+  const maxP=funds[0].gain_pct;let rows='';
+  funds.forEach((f,i)=>{
+    const p=f.gain_pct,w=Math.abs(p)/Math.abs(maxP)*100,lss=p<0,hi=p>50;
+    const rc=i<10?'top':i<funds.length-5?'mid':'bot';
+    rows+='<div class="bc-row'+(lss?' loss':'')+'" style="animation-delay:'+Math.min(i*.018,.9)+'s" data-rank="'+i+'" data-pct="'+p+'"><div class="bc-name-wrap"><span class="rank-badge '+rc+'">'+(i+1)+'</span><span class="bc-name" title="'+f.name+'">'+short(f.name)+'</span></div><div class="bc-track"><div class="bc-fill '+(lss?'neg':hi?'hi':'pos')+'" style="width:'+w+'%"></div></div><div class="bc-pct '+(lss?'neg':'pos')+'">'+(p>0?'+':'')+p.toFixed(1)+'%</div><div class="bc-gbp">'+(f.gain_gbp>=0?'+':'-')+'&#163;'+Math.abs(f.gain_gbp).toFixed(0)+'</div></div>';
+  });
+  document.getElementById('bar-chart-rows').innerHTML=rows;
+
+  annSortCol=0;annSortDir=-1;renderAnnTable();
+
+  const qEl=document.getElementById('quads');qEl.innerHTML='';
+  [{cls:'best',title:'&#11088; Exceptional +50%+',items:funds.filter(f=>f.gain_pct>=50)},
+   {cls:'solid',title:'&#9989; Solid +20% to +50%',items:funds.filter(f=>f.gain_pct>=20&&f.gain_pct<50)},
+   {cls:'up-now',title:'&#128248; Modest 0% to +20%',items:funds.filter(f=>f.gain_pct>=0&&f.gain_pct<20)},
+   {cls:'worst',title:'&#128315; Losses since inception',items:funds.filter(f=>f.gain_pct<0)}
+  ].forEach(q=>{
+    const vc=q.cls==='worst'?'r':q.cls==='best'?'a':q.cls==='solid'?'g':'t';
+    qEl.innerHTML+='<div class="quad-card '+q.cls+'"><div class="quad-title">'+q.title+' ('+q.items.length+')</div>'+q.items.map(f=>'<div class="quad-item"><div class="qi-name" title="'+f.name+'">'+short(f.name)+'</div><div class="qi-val '+vc+'">'+(f.gain_pct>0?'+':'')+f.gain_pct.toFixed(1)+'%</div></div>').join('')+'</div>';
+  });
+
+  const tbl=document.getElementById('full-tbl');tbl.innerHTML='';
+  funds.forEach((f,i)=>{
+    const cls=f.gain_pct>=0?'cell-pos':'cell-neg';
+    const bw=Math.min(Math.abs(f.gain_pct)/Math.abs(maxP)*100,100);
+    const bc=f.gain_pct>50?'h':f.gain_pct>=0?'p':'n';
+    tbl.innerHTML+='<tr><td class="tbl-rank">#'+(i+1)+'</td><td class="mn">'+short(f.name)+'</td><td><div class="ib-wrap"><div class="ib-track"><div class="ib-fill '+bc+'" style="width:'+bw+'%"></div></div><span class="'+cls+' mn">'+(f.gain_pct>=0?'+':'')+f.gain_pct.toFixed(1)+'%</span></div></td><td class="'+cls+' mn">&#163;'+(f.gain_gbp>=0?'':'-')+Math.abs(f.gain_gbp).toFixed(0)+'</td><td class="mnr">&#163;'+f.value.toFixed(0)+'</td><td class="mnrm">&#163;'+f.book_cost.toFixed(0)+'</td><td>'+fmtPct(f.perf_1yr)+'</td><td>'+fmtPct(f.perf_3yr)+'</td><td>'+fmtPct(f.perf_5yr)+'</td></tr>';
+  });
+}
+
+const annCols=[f=>f.ann_1yr,f=>f.ann_3yr,f=>f.ann_5yr,f=>f.ann_10yr,f=>f.yr1,f=>f.yr2,f=>f.yr3,f=>f.yr4,f=>f.yr5];
+function renderAnnTable(){
+  for(let i=0;i<9;i++){
+    const el=document.getElementById('sa'+i);if(!el)continue;
+    el.className='sort-arrow'+(i===annSortCol?' active':'');
+    el.innerHTML=i===annSortCol?(annSortDir===-1?'&#9660;':'&#9650;'):'&#9660;';
+  }
+  const sorted=[...funds].sort((a,b)=>{
+    const av=annCols[annSortCol](a),bv=annCols[annSortCol](b);
+    if(av===null&&bv===null)return 0;
+    if(av===null)return 1;if(bv===null)return -1;
+    return(bv-av)*annSortDir;
+  });
+  const tb=document.getElementById('ann-tbody');tb.innerHTML='';
+  sorted.forEach(f=>{
+    const vals=[f.ann_1yr,f.ann_3yr,f.ann_5yr,f.ann_10yr,f.yr1,f.yr2,f.yr3,f.yr4,f.yr5];
+    tb.innerHTML+='<tr><td style="font-size:11px">'+short(f.name)+'</td>'+vals.map(v=>'<td class="num"><div class="heat-wrap"><div class="heat-bar" style="'+heatColor(v)+'"></div>'+(v===null?'<span class="cell-na">&#8212;</span>':'<span class="'+(v>=0?'cell-pos':'cell-neg')+'">'+(v>=0?'+':'')+Number(v).toFixed(1)+'%</span>')+'</div></td>').join('')+'</tr>';
+  });
+}
+function sortAnn(col){
+  if(annSortCol===col)annSortDir*=-1;else{annSortCol=col;annSortDir=-1;}
+  renderAnnTable();
+}
+
+function filterChart(mode,btn){
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.querySelectorAll('.bc-row').forEach(row=>{
+    const rank=+row.dataset.rank,pct=+row.dataset.pct;let show=true;
+    if(mode==='top20'&&rank>=20)show=false;
+    if(mode==='pos'&&pct<=0)show=false;
+    if(mode==='neg'&&pct>=0)show=false;
+    if(mode==='under10'&&(pct>=10||pct<0))show=false;
+    row.style.display=show?'':'none';
+  });
+}
+
+const zone=document.getElementById('upload-zone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag')});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+function setStatus(msg,type){const el=document.getElementById('upload-status');el.textContent=msg;el.className='upload-status '+type;el.style.display='block'}
+function safeNum(v){return typeof v==='number'?v:null}
+function handleFile(file){
+  if(!file)return;
+  if(!file.name.match(/\.xlsx?$/i)){setStatus('File must be .xlsx or .xls','err');return}
+  setStatus('Reading file\u2026','loading');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+      let ds=4;
+      for(let i=0;i<rows.length;i++){if(rows[i]&&rows[i][0]==='Fidelity Fund Name'){ds=i+1;break}}
+      const parsed=[];
+      for(let i=ds;i<rows.length;i++){
+        const r=rows[i];
+        if(!r||!r[0]||typeof r[0]!=='string'||!r[5])continue;
+        parsed.push({name:r[0],value:safeNum(r[5]),book_cost:safeNum(r[7]),
+          gain_gbp:safeNum(r[14]),gain_pct:safeNum(r[15]),
+          perf_1yr:safeNum(r[18]),perf_3yr:safeNum(r[19]),perf_5yr:safeNum(r[20]),perf_10yr:safeNum(r[21]),
+          ann_1yr:safeNum(r[23]),ann_3yr:safeNum(r[24]),ann_5yr:safeNum(r[25]),ann_10yr:safeNum(r[26]),
+          yr1:safeNum(r[28]),yr2:safeNum(r[29]),yr3:safeNum(r[30]),yr4:safeNum(r[31]),yr5:safeNum(r[32])});
+      }
+      if(!parsed.length){setStatus('No fund data found. Check file format.','err');return}
+      render(parsed);
+      const hdr=(rows[0]&&rows[0][0]?rows[0][0]:'').toString().replace('Prices and valuations updated at','').trim();
+      document.getElementById('hd-meta').textContent=(hdr||'')+' \u00b7 '+parsed.length+' holdings';
+      setStatus('Dashboard updated \u2014 '+parsed.length+' holdings loaded from \"'+file.name+'\"','ok');
+    }catch(err){setStatus('Error: '+err.message,'err')}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+render(DEFAULT);
+</script>
+</body>
+</html>
