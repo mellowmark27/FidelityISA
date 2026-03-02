@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fidelity Portfolio Analysis Dashboard | Private SIPP Performance Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+3:wght@300;400;600&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1117;--panel:#141820;--border:#1f2535;--text:#c8cdd8;--muted:#555e72;--bright:#eef0f6;--gold:#d4a843;--silver:#8fa3b8;--bronze:#b87340;--green:#3dba7e;--green2:#27996a;--red:#e05252;--amber:#e8a030;--teal:#40b8c8}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-serif;font-weight:300;line-height:1.5;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 16px 80px}
+.hd{display:grid;grid-template-columns:1fr auto;align-items:end;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--border);margin-bottom:36px}
+.hd-tag{font-family:'Source Code Pro',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+h1{font-family:'Playfair Display',serif;font-size:clamp(30px,6vw,60px);font-weight:900;color:var(--bright);line-height:.92}
+h1 span{color:var(--gold);font-style:italic}
+.hd-meta{font-size:11px;color:var(--muted);margin-top:8px;font-family:'Source Code Pro',monospace}
+.hd-right{text-align:right;flex-shrink:0}
+.hd-big{font-family:'Playfair Display',serif;font-size:clamp(34px,6vw,52px);font-weight:900;line-height:1;color:var(--green)}
+.hd-big-label{font-family:'Source Code Pro',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:40px}
+.kpi{background:var(--panel);padding:16px 12px}
+.kpi-val{font-family:'Playfair Display',serif;font-size:clamp(18px,4vw,26px);font-weight:700;line-height:1;color:var(--bright);margin-bottom:4px}
+.kpi-val.up{color:var(--green)}.kpi-val.dn{color:var(--red)}.kpi-val.go{color:var(--gold)}
+.kpi-lbl{font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sh-num{font-family:'Source Code Pro',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(212,168,67,.4);padding:3px 8px;border-radius:2px;white-space:nowrap}
+h2{font-family:'Playfair Display',serif;font-size:clamp(16px,4vw,21px);font-weight:700;color:var(--bright)}
+.sh-line{flex:1;height:1px;background:var(--border)}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:40px}
+.pod{background:var(--panel);border:1px solid var(--border);padding:20px 16px 16px;position:relative;overflow:hidden}
+.pod::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.pod.p1::after{background:linear-gradient(90deg,#b8860b,#f0d060,#b8860b)}
+.pod.p2::after{background:linear-gradient(90deg,#607080,#a8c0d0,#607080)}
+.pod.p3::after{background:linear-gradient(90deg,#8a5030,#d08050,#8a5030)}
+.pod-medal{font-size:10px;font-family:'Source Code Pro',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.pod.p1 .pod-medal{color:var(--gold)}.pod.p2 .pod-medal{color:var(--silver)}.pod.p3 .pod-medal{color:var(--bronze)}
+.pod-pct{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,52px);font-weight:900;line-height:1;color:var(--green);margin-bottom:6px}
+.pod.p1 .pod-pct{font-size:clamp(40px,6vw,60px)}
+.pod-name{font-size:12px;font-weight:600;color:var(--bright);line-height:1.4;margin-bottom:10px}
+.pod-stats{display:flex;gap:12px;flex-wrap:wrap}
+.pod-stat{display:flex;flex-direction:column;gap:1px}
+.pod-stat-val{font-family:'Source Code Pro',monospace;font-size:11px;color:var(--bright)}
+.pod-stat-lbl{font-family:'Source Code Pro',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.pod-ghost{font-family:'Playfair Display',serif;font-size:80px;font-weight:900;position:absolute;bottom:-12px;right:-4px;line-height:1;opacity:.05;color:var(--bright);pointer-events:none}
+.callout{background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.15);border-left:3px solid var(--gold);padding:14px 16px;margin-bottom:40px;font-size:13px;line-height:1.85;color:var(--text)}
+.callout strong{color:var(--gold)}
+.bar-chart{margin-bottom:40px}
+.bc-head{display:grid;grid-template-columns:1fr 80px 64px 60px;gap:8px;padding:8px 10px;background:var(--border);font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:1px}
+.bc-row{display:grid;grid-template-columns:1fr 80px 64px 60px;gap:8px;padding:7px 10px;background:var(--panel);border-bottom:1px solid var(--border);align-items:center;opacity:0;animation:fadeSlide .4s ease forwards}
+.bc-row:hover{background:#181f2c}
+.bc-row.loss{background:rgba(224,82,82,.04)}
+.bc-name{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-track{height:7px;background:rgba(255,255,255,.06);border-radius:1px}
+.bc-fill{height:100%;border-radius:1px}
+.bc-fill.pos{background:linear-gradient(90deg,var(--green2),var(--green))}
+.bc-fill.hi{background:linear-gradient(90deg,#c07010,var(--gold))}
+.bc-fill.neg{background:linear-gradient(90deg,#9b1c1c,var(--red))}
+.bc-pct{font-family:'Source Code Pro',monospace;font-size:11px;text-align:right}
+.bc-pct.pos{color:var(--green)}.bc-pct.neg{color:var(--red)}
+.bc-gbp{font-family:'Source Code Pro',monospace;font-size:10px;color:var(--muted);text-align:right}
+.bc-name-wrap{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
+.rank-badge{font-family:'Source Code Pro',monospace;font-size:9px;min-width:20px;text-align:center;padding:2px 3px;border-radius:2px;flex-shrink:0}
+.rank-badge.top{background:rgba(212,168,67,.15);color:var(--gold);border:1px solid rgba(212,168,67,.3)}
+.rank-badge.mid{background:rgba(64,184,200,.08);color:var(--teal);border:1px solid rgba(64,184,200,.2)}
+.rank-badge.bot{background:rgba(224,82,82,.1);color:var(--red);border:1px solid rgba(224,82,82,.2)}
+.ann-section{margin-bottom:40px}
+.ann-note{font-size:11px;color:var(--muted);margin-bottom:10px;font-family:'Source Code Pro',monospace}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border)}
+.ann-table,.full-table{width:100%;border-collapse:collapse;font-size:11px;min-width:540px}
+.ann-table th,.full-table th{background:var(--panel);font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:9px 9px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2}
+.ann-table th.num,.full-table th.num{text-align:right;cursor:pointer;user-select:none}
+.ann-table th.num:hover,.full-table th.num:hover{color:var(--gold)}
+.sort-arrow{margin-left:3px;opacity:.4}
+.sort-arrow.active{opacity:1;color:var(--gold)}
+.ann-table td,.full-table td{padding:6px 9px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+.ann-table tr:hover td,.full-table tr:hover td{background:rgba(255,255,255,.02)}
+.ann-table td.num,.full-table td.num{text-align:right;font-family:'Source Code Pro',monospace}
+.cell-pos{color:var(--green);font-family:'Source Code Pro',monospace}
+.cell-neg{color:var(--red);font-family:'Source Code Pro',monospace}
+.cell-muted{color:var(--muted);font-family:'Source Code Pro',monospace}
+.cell-na{color:var(--muted);font-family:'Source Code Pro',monospace;font-size:10px}
+.heat-wrap{display:flex;align-items:center;gap:5px;justify-content:flex-end}
+.heat-bar{width:28px;height:4px;border-radius:1px;flex-shrink:0}
+.quad-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:40px}
+.quad-card{background:var(--panel);border:1px solid var(--border);padding:14px}
+.quad-title{font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.quad-card.best .quad-title{color:var(--green)}.quad-card.worst .quad-title{color:var(--red)}
+.quad-card.up-now .quad-title{color:var(--amber)}.quad-card.solid .quad-title{color:var(--teal)}
+.quad-item{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px}
+.quad-item:last-child{border-bottom:none}
+.qi-name{color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px}
+.qi-val{font-family:'Source Code Pro',monospace;font-size:11px;flex-shrink:0;font-weight:500}
+.qi-val.g{color:var(--green)}.qi-val.r{color:var(--red)}.qi-val.a{color:var(--amber)}.qi-val.t{color:var(--teal)}
+.full-section{margin-bottom:40px}
+.ib-wrap{display:flex;align-items:center;gap:6px}
+.ib-track{width:44px;height:4px;background:rgba(255,255,255,.07);border-radius:1px;flex-shrink:0}
+.ib-fill{height:100%;border-radius:1px}
+.ib-fill.p{background:var(--green)}.ib-fill.n{background:var(--red)}.ib-fill.h{background:var(--gold)}
+.tbl-rank{color:var(--muted);font-family:'Source Code Pro',monospace;font-size:10px}
+.mn{font-family:'Source Code Pro',monospace;font-size:11px}.mnr{font-family:'Source Code Pro',monospace;font-size:11px;text-align:right}.mnrm{font-family:'Source Code Pro',monospace;font-size:11px;text-align:right;color:var(--muted)}
+.upload-shortcut{display:inline-flex;align-items:center;gap:6px;font-family:'Source Code Pro',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);border:1px solid rgba(212,168,67,.4);padding:5px 12px;border-radius:2px;cursor:pointer;background:rgba(212,168,67,.05);text-decoration:none;-webkit-tap-highlight-color:transparent;transition:background .15s,border-color .15s}
+.upload-shortcut:hover{background:rgba(212,168,67,.12);border-color:rgba(212,168,67,.7)}
+.privacy-note{display:flex;align-items:flex-start;gap:10px;background:rgba(64,184,200,.05);border:1px solid rgba(64,184,200,.18);border-left:3px solid var(--teal);padding:12px 16px;margin-bottom:16px;font-size:11px;color:var(--muted);line-height:1.7}
+.privacy-note strong{color:var(--teal)}.privacy-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.ann-toggle{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--border);border-radius:3px;overflow:hidden;width:fit-content}
+.ann-tab{font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:6px 14px;cursor:pointer;background:var(--panel);color:var(--muted);border:none;-webkit-tap-highlight-color:transparent;transition:background .15s,color .15s}
+.ann-tab.active{background:rgba(212,168,67,.15);color:var(--gold)}.ann-tab:hover:not(.active){color:var(--text)}
+.filter-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.fb{font-family:'Source Code Pro',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:5px 9px;border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;border-radius:2px;-webkit-tap-highlight-color:transparent}
+.fb:hover,.fb.active{border-color:var(--gold);color:var(--gold);background:rgba(212,168,67,.08)}
+.upload-section{border:1px solid var(--border);background:var(--panel);padding:24px 20px;margin-bottom:40px}
+.upload-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--bright);margin-bottom:6px}
+.upload-desc{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.7}
+.upload-zone{border:2px dashed var(--border);border-radius:4px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(212,168,67,.04)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:26px;margin-bottom:8px}
+.upload-zone-text{font-family:'Source Code Pro',monospace;font-size:11px;color:var(--muted)}
+.upload-zone-text strong{color:var(--gold);display:block;margin-bottom:4px;font-size:12px}
+.upload-status{margin-top:12px;font-family:'Source Code Pro',monospace;font-size:11px;padding:10px 12px;border-radius:3px;display:none}
+.upload-status.ok{background:rgba(61,186,126,.1);border:1px solid rgba(61,186,126,.3);color:var(--green)}
+.upload-status.err{background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.3);color:var(--red)}
+.upload-status.loading{background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.2);color:var(--amber)}
+@keyframes fadeSlide{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+@media(max-width:600px){
+  .wrap{padding:18px 10px 60px}
+  .hd{grid-template-columns:1fr;gap:10px}
+  .hd-right{text-align:left}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpis .kpi:last-child{grid-column:1/-1}
+  .podium{grid-template-columns:1fr}
+  .quad-grid{grid-template-columns:1fr}
+  .bc-head,.bc-row{grid-template-columns:1fr 64px 56px}
+  .bc-head>:last-child,.bc-row>:last-child{display:none}
+  .sh-line{display:none}
+  .callout{font-size:12px}
+}
+@media(min-width:601px) and (max-width:900px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .podium{grid-template-columns:1fr 1fr}
+  .podium .pod:last-child{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hd">
+  <div>
+    <div class="hd-tag">Fidelity SIPP · Investment Analysis</div>
+    <h1>Returns Since<br><span>Inception</span></h1>
+    <div class="hd-meta" id="hd-meta">33 holdings</div>
+    <a class="upload-shortcut" href="#upload-section" onclick="document.getElementById('upload-section').scrollIntoView({behavior:'smooth'});return false;">&#8593; Upload new file</a>
+  </div>
+  <div class="hd-right">
+    <div class="hd-big" id="top-pct">—</div>
+    <div class="hd-big-label">Highest % since inception</div>
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-val up" id="k-avg">—</div><div class="kpi-lbl">Avg inception gain</div><div class="kpi-sub" id="k-count">—</div></div>
+  <div class="kpi"><div class="kpi-val up" id="k-pos">—</div><div class="kpi-lbl">In profit</div><div class="kpi-sub" id="k-pos-sub">—</div></div>
+  <div class="kpi"><div class="kpi-val dn" id="k-neg">—</div><div class="kpi-lbl">At loss</div><div class="kpi-sub" id="k-neg-sub">—</div></div>
+  <div class="kpi"><div class="kpi-val go" id="k-over50">—</div><div class="kpi-lbl">Over +50%</div><div class="kpi-sub">exceptional</div></div>
+  <div class="kpi"><div class="kpi-val" id="k-median" style="color:var(--teal)">—</div><div class="kpi-lbl">Median gain</div><div class="kpi-sub">central</div></div>
+</div>
+
+<section>
+  <div class="sh"><span class="sh-num">01</span><h2>Top 3 — Highest % Since Inception</h2><div class="sh-line"></div></div>
+  <div class="podium" id="podium"></div>
+</section>
+
+<div class="callout" id="callout"></div>
+
+<section class="bar-chart">
+  <div class="sh"><span class="sh-num">02</span><h2>All Holdings — Ranked by % Gain Since Inception</h2><div class="sh-line"></div></div>
+  <div class="filter-bar">
+    <button class="fb active" onclick="filterChart('all',this)">All</button>
+    <button class="fb" onclick="filterChart('top10',this)">Top 10</button>
+    <button class="fb" onclick="filterChart('pos',this)">Positive</button>
+    <button class="fb" onclick="filterChart('neg',this)">Losses</button>
+    <button class="fb" onclick="filterChart('under10',this)">Under +10%</button>
+  </div>
+  <div class="bc-head">
+    <div>Fund</div><div>Bar</div><div style="text-align:right">%</div><div style="text-align:right">£ G/L</div>
+  </div>
+  <div id="bar-chart-rows"></div>
+</section>
+
+<section class="ann-section">
+  <div class="sh"><span class="sh-num">03</span><h2>Returns by Period</h2><div class="sh-line"></div></div>
+  <div class="ann-note">Tap any column header to sort · heat bar shows magnitude · — = no data</div>
+  <div class="ann-toggle">
+    <button class="ann-tab active" id="tab-ann" onclick="switchAnnView('ann')">Annualised</button>
+    <button class="ann-tab" id="tab-yr" onclick="switchAnnView('yr')">Annual (Yr 1–5)</button>
+  </div>
+  <div class="tbl-scroll">
+    <table class="ann-table" id="ann-table">
+      <thead id="ann-thead"><tr>
+        <th style="min-width:160px">Fund</th>
+        <th class="num" onclick="sortAnn(0)">1yr Ann <span class="sort-arrow active" id="sa0">▼</span></th>
+        <th class="num" onclick="sortAnn(1)">3yr Ann <span class="sort-arrow" id="sa1">▼</span></th>
+        <th class="num" onclick="sortAnn(2)">5yr Ann <span class="sort-arrow" id="sa2">▼</span></th>
+        <th class="num" onclick="sortAnn(3)">10yr Ann <span class="sort-arrow" id="sa3">▼</span></th>
+      </tr></thead>
+      <tbody id="ann-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sh"><span class="sh-num">04</span><h2>Performance Quadrants</h2><div class="sh-line"></div></div>
+  <div class="quad-grid" id="quads"></div>
+</section>
+
+<section class="full-section">
+  <div class="sh"><span class="sh-num">05</span><h2>Complete Holdings Table</h2><div class="sh-line"></div></div>
+  <div class="tbl-scroll">
+    <table class="full-table">
+      <thead><tr>
+        <th>#</th><th style="min-width:150px">Fund</th>
+        <th class="num">Inception %</th><th class="num">£ G/L</th>
+        <th class="num">Value</th><th class="num">Book Cost</th>
+        <th class="num">1yr %</th><th class="num">3yr %</th><th class="num">5yr %</th>
+      </tr></thead>
+      <tbody id="full-tbl"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sh"><span class="sh-num">06</span><h2>Update with New Data</h2><div class="sh-line"></div></div>
+  <div class="upload-section" id="upload-section">
+    <div class="privacy-note"><div class="privacy-icon">&#128274;</div><div><strong>Your data never leaves your device.</strong> This dashboard processes all files entirely within your browser using <strong>SheetJS</strong> (v0.18.5, cdnjs.cloudflare.com) — a widely-used open-source spreadsheet parsing library. No data is uploaded to any server at any point.</div></div>
+    <div class="upload-title">Upload Latest Fidelity Export</div>
+    <div class="upload-desc">Upload a new Fidelity performance .xlsx file to refresh all charts and figures instantly. The file must be a standard Fidelity performance export.</div>
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFile(this.files[0])">
+      <div class="upload-icon">📂</div>
+      <div class="upload-zone-text">
+        <strong>Tap to choose file</strong>
+        .xlsx or .xls · Fidelity performance export
+      </div>
+    </div>
+    <div class="upload-status" id="upload-status"></div>
+  </div>
+</section>
+
+</div>
+
+<footer style="max-width:1180px;margin:0 auto;padding:0 16px 48px;border-top:1px solid #1f2535;margin-top:0">
+  <div style="padding-top:24px">
+    <div style="font-family:'Source Code Pro',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#555e72;margin-bottom:10px">Disclaimer — For Information Only</div>
+    <p style="font-size:11px;color:#555e72;line-height:1.8;max-width:860px">
+      This document is compiled solely for informational purposes and does not constitute investment advice or a recommendation to buy or sell any security. Past performance is not indicative of future results. For personal use only.
+    </p>
+    <p style="font-size:11px;color:#555e72;line-height:1.8;max-width:860px;margin-top:8px">
+      Not affiliated with, maintained, authorised, or sponsored by Fidelity. All product and company names are the registered trademarks of their original owners. The use of any trade name or trademark is for identification and reference purposes only and does not imply any association with the trademark holder.
+    </p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const DEFAULT=[{"name":"abrdn World Equity Enhanced Index B Acc","value":101.21,"book_cost":100.0,"gain_gbp":1.21,"gain_pct":1.21,"perf_1yr":13.88,"perf_3yr":61.93,"perf_5yr":99.07,"perf_10yr":264.21,"ann_1yr":13.88,"ann_3yr":17.43,"ann_5yr":14.76,"ann_10yr":13.8,"yr1":12.34,"yr2":23.03,"yr3":19.93,"yr4":-6.53,"yr5":25.38},{"name":"Artemis Global Income Fund Class I Inc","value":1140.76,"book_cost":1000.0,"gain_gbp":140.76,"gain_pct":14.07,"perf_1yr":57.14,"perf_3yr":130.53,"perf_5yr":183.65,"perf_10yr":318.49,"ann_1yr":57.14,"ann_3yr":32.18,"ann_5yr":23.11,"ann_10yr":15.44,"yr1":45.17,"yr2":26.81,"yr3":9.69,"yr4":-2.54,"yr5":26.48},{"name":"Artemis SmartGARP European Equity Fund Class I Acc","value":1087.49,"book_cost":1000.0,"gain_gbp":87.49,"gain_pct":8.74,"perf_1yr":53.14,"perf_3yr":108.21,"perf_5yr":169.05,"perf_10yr":281.61,"ann_1yr":53.14,"ann_3yr":27.69,"ann_5yr":21.89,"ann_10yr":14.33,"yr1":55.91,"yr2":16.36,"yr3":15.09,"yr4":2.02,"yr5":19.47},{"name":"Artemis SmartGARP Global Equity Fund Class I Acc","value":1095.95,"book_cost":1000.0,"gain_gbp":95.95,"gain_pct":9.59,"perf_1yr":41.96,"perf_3yr":82.33,"perf_5yr":111.96,"perf_10yr":271.58,"ann_1yr":41.96,"ann_3yr":22.29,"ann_5yr":16.15,"ann_10yr":14.0,"yr1":32.36,"yr2":21.67,"yr3":3.91,"yr4":-2.5,"yr5":23.64},{"name":"Artemis SmartGARP Global Smaller Companies I Acc","value":276.45,"book_cost":250.0,"gain_gbp":26.45,"gain_pct":10.58,"perf_1yr":24.34,"perf_3yr":48.84,"perf_5yr":61.35,"perf_10yr":222.85,"ann_1yr":24.34,"ann_3yr":14.2,"ann_5yr":10.0,"ann_10yr":12.38,"yr1":9.03,"yr2":10.08,"yr3":8.14,"yr4":-10.85,"yr5":18.94},{"name":"Artemis SmartGARP UK Equity Fund Class I Acc","value":1099.23,"book_cost":1000.0,"gain_gbp":99.23,"gain_pct":9.92,"perf_1yr":44.51,"perf_3yr":86.87,"perf_5yr":161.52,"perf_10yr":271.7,"ann_1yr":44.51,"ann_3yr":23.17,"ann_5yr":21.2,"ann_10yr":14.03,"yr1":39.86,"yr2":24.54,"yr3":3.57,"yr4":6.33,"yr5":30.84},{"name":"Baillie Gifford Emerging Markets Growth B Acc","value":1138.81,"book_cost":1000.0,"gain_gbp":138.81,"gain_pct":13.88,"perf_1yr":49.75,"perf_3yr":75.17,"perf_5yr":32.95,"perf_10yr":258.12,"ann_1yr":49.75,"ann_3yr":20.65,"ann_5yr":5.87,"ann_10yr":13.64,"yr1":33.17,"yr2":5.46,"yr3":8.29,"yr4":-18.37,"yr5":-7.73},{"name":"Baillie Gifford Pacific Fund B Inc","value":1138.3,"book_cost":1000.0,"gain_gbp":138.3,"gain_pct":13.83,"perf_1yr":51.6,"perf_3yr":69.74,"perf_5yr":35.85,"perf_10yr":375.45,"ann_1yr":51.6,"ann_3yr":19.27,"ann_5yr":6.34,"ann_10yr":16.86,"yr1":28.9,"yr2":11.62,"yr3":0.76,"yr4":-20.19,"yr5":6.52},{"name":"Dodge & Cox Worldwide - Global Stock (GBP Acc)","value":1222.5,"book_cost":648.01,"gain_gbp":574.49,"gain_pct":88.65,"perf_1yr":15.93,"perf_3yr":40.52,"perf_5yr":81.2,"perf_10yr":242.87,"ann_1yr":15.93,"ann_3yr":12.02,"ann_5yr":12.62,"ann_10yr":13.0,"yr1":15.84,"yr2":6.98,"yr3":13.86,"yr4":4.91,"yr5":21.37},{"name":"Fidelity Asia W Accumulation hedged","value":1123.48,"book_cost":1000.0,"gain_gbp":123.48,"gain_pct":12.34,"perf_1yr":53.19,"perf_3yr":84.55,"perf_5yr":30.93,"perf_10yr":null,"ann_1yr":53.19,"ann_3yr":22.63,"ann_5yr":5.51,"ann_10yr":null,"yr1":35.63,"yr2":14.11,"yr3":2.49,"yr4":-19.01,"yr5":-6.66},{"name":"Fidelity Index World P-Accumulation","value":902.5,"book_cost":666.88,"gain_gbp":235.62,"gain_pct":35.33,"perf_1yr":13.64,"perf_3yr":56.34,"perf_5yr":86.87,"perf_10yr":262.3,"ann_1yr":13.64,"ann_3yr":16.19,"ann_5yr":13.35,"ann_10yr":13.8,"yr1":12.96,"yr2":21.0,"yr3":16.99,"yr4":-8.0,"yr5":23.84},{"name":"Fidelity Japan W-Accumulation","value":1180.74,"book_cost":1000.0,"gain_gbp":180.74,"gain_pct":18.07,"perf_1yr":52.62,"perf_3yr":86.96,"perf_5yr":107.28,"perf_10yr":295.27,"ann_1yr":52.62,"ann_3yr":23.18,"ann_5yr":15.77,"ann_10yr":14.77,"yr1":30.3,"yr2":6.6,"yr3":15.53,"yr4":0.16,"yr5":9.08},{"name":"Fidelity MSCI World Index P GBP Hedged","value":100.53,"book_cost":100.0,"gain_gbp":0.53,"gain_pct":0.53,"perf_1yr":20.16,"perf_3yr":72.06,"perf_5yr":81.7,"perf_10yr":null,"ann_1yr":20.16,"ann_3yr":19.83,"ann_5yr":12.69,"ann_10yr":null,"yr1":18.72,"yr2":20.96,"yr3":22.57,"yr4":-17.39,"yr5":23.84},{"name":"Fidelity UK Smaller Companies W-Accumulation","value":1015.36,"book_cost":843.99,"gain_gbp":171.37,"gain_pct":20.3,"perf_1yr":19.02,"perf_3yr":24.6,"perf_5yr":56.41,"perf_10yr":154.49,"ann_1yr":19.02,"ann_3yr":7.61,"ann_5yr":9.36,"ann_10yr":9.79,"yr1":9.41,"yr2":4.52,"yr3":10.25,"yr4":-8.28,"yr5":34.54},{"name":"FP Octopus UK Micro Cap Growth P Acc","value":729.3,"book_cost":951.64,"gain_gbp":-222.34,"gain_pct":-23.37,"perf_1yr":10.72,"perf_3yr":-8.98,"perf_5yr":-30.79,"perf_10yr":89.66,"ann_1yr":10.72,"ann_3yr":-3.07,"ann_5yr":-7.05,"ann_10yr":6.6,"yr1":0.14,"yr2":1.17,"yr3":-6.58,"yr4":-33.22,"yr5":17.92},{"name":"FTF Templeton Global Emerging Markets W Acc","value":288.72,"book_cost":250.0,"gain_gbp":38.72,"gain_pct":15.48,"perf_1yr":48.97,"perf_3yr":79.43,"perf_5yr":53.05,"perf_10yr":259.93,"ann_1yr":48.97,"ann_3yr":21.6,"ann_5yr":8.9,"ann_10yr":13.65,"yr1":35.51,"yr2":8.34,"yr3":7.61,"yr4":-11.37,"yr5":-3.85},{"name":"Jupiter Global Emerging Markets I Acc","value":1119.47,"book_cost":1000.0,"gain_gbp":119.47,"gain_pct":11.94,"perf_1yr":40.37,"perf_3yr":57.92,"perf_5yr":39.15,"perf_10yr":148.52,"ann_1yr":40.37,"ann_3yr":16.46,"ann_5yr":6.84,"ann_10yr":9.49,"yr1":23.82,"yr2":6.48,"yr3":8.21,"yr4":-13.88,"yr5":1.72},{"name":"Jupiter Merian Global Equity I GBP Acc","value":1433.91,"book_cost":654.97,"gain_gbp":778.94,"gain_pct":118.92,"perf_1yr":19.85,"perf_3yr":69.48,"perf_5yr":106.15,"perf_10yr":301.11,"ann_1yr":19.85,"ann_3yr":19.25,"ann_5yr":15.63,"ann_10yr":14.93,"yr1":18.01,"yr2":24.28,"yr3":18.66,"yr4":-6.89,"yr5":24.78},{"name":"L&G Global 100 Index Trust (I) Acc","value":1088.69,"book_cost":622.39,"gain_gbp":466.3,"gain_pct":74.92,"perf_1yr":18.59,"perf_3yr":78.0,"perf_5yr":121.98,"perf_10yr":365.52,"ann_1yr":18.59,"ann_3yr":21.38,"ann_5yr":17.33,"ann_10yr":16.64,"yr1":18.24,"yr2":29.39,"yr3":20.71,"yr4":-6.12,"yr5":27.5},{"name":"L&G Global Equity Index I Acc","value":103.49,"book_cost":100.0,"gain_gbp":3.49,"gain_pct":3.49,"perf_1yr":17.26,"perf_3yr":58.69,"perf_5yr":87.66,"perf_10yr":257.05,"ann_1yr":17.26,"ann_3yr":16.6,"ann_5yr":13.43,"ann_10yr":13.56,"yr1":14.5,"yr2":19.84,"yr3":16.88,"yr4":-7.82,"yr5":22.12},{"name":"L&G Global Health & Pharmaceuticals (I) Acc","value":821.74,"book_cost":751.31,"gain_gbp":70.43,"gain_pct":9.37,"perf_1yr":2.44,"perf_3yr":14.0,"perf_5yr":42.77,"perf_10yr":140.19,"ann_1yr":2.44,"ann_3yr":4.48,"ann_5yr":7.35,"ann_10yr":9.1,"yr1":6.05,"yr2":3.24,"yr3":-2.07,"yr4":4.92,"yr5":19.52},{"name":"Liontrust European Dynamic I Acc","value":1072.0,"book_cost":1000.0,"gain_gbp":72.0,"gain_pct":7.2,"perf_1yr":27.97,"perf_3yr":53.54,"perf_5yr":null,"perf_10yr":null,"ann_1yr":27.97,"ann_3yr":15.38,"ann_5yr":null,"ann_10yr":null,"yr1":29.32,"yr2":2.74,"yr3":null,"yr4":null,"yr5":null},{"name":"Liontrust UK Micro-Cap (I)","value":699.5,"book_cost":739.21,"gain_gbp":-39.71,"gain_pct":-5.38,"perf_1yr":8.75,"perf_3yr":-1.11,"perf_5yr":4.08,"perf_10yr":null,"ann_1yr":8.75,"ann_3yr":-0.37,"ann_5yr":0.81,"ann_10yr":null,"yr1":-1.2,"yr2":-0.04,"yr3":1.03,"yr4":-17.14,"yr5":33.62},{"name":"Matthews China Discovery I Acc","value":256.92,"book_cost":256.8,"gain_gbp":0.12,"gain_pct":0.04,"perf_1yr":33.83,"perf_3yr":17.99,"perf_5yr":-10.93,"perf_10yr":null,"ann_1yr":33.83,"ann_3yr":5.67,"ann_5yr":-2.27,"ann_10yr":null,"yr1":16.97,"yr2":4.9,"yr3":-20.32,"yr4":-22.34,"yr5":-1.58},{"name":"Pictet Robotics I GBP","value":1450.08,"book_cost":620.89,"gain_gbp":829.19,"gain_pct":133.54,"perf_1yr":13.6,"perf_3yr":70.96,"perf_5yr":67.06,"perf_10yr":460.61,"ann_1yr":13.6,"ann_3yr":19.63,"ann_5yr":10.79,"ann_10yr":19.04,"yr1":16.94,"yr2":18.06,"yr3":46.33,"yr4":-26.66,"yr5":20.07},{"name":"Redwheel UK Climate Engagement R Acc","value":1043.33,"book_cost":1000.0,"gain_gbp":43.33,"gain_pct":4.33,"perf_1yr":null,"perf_3yr":null,"perf_5yr":null,"perf_10yr":null,"ann_1yr":null,"ann_3yr":null,"ann_5yr":null,"ann_10yr":null,"yr1":null,"yr2":null,"yr3":null,"yr4":null,"yr5":null},{"name":"Schroder Global Emerging Markets Z Acc","value":1129.15,"book_cost":1000.0,"gain_gbp":129.15,"gain_pct":12.91,"perf_1yr":49.18,"perf_3yr":67.62,"perf_5yr":42.79,"perf_10yr":223.95,"ann_1yr":49.18,"ann_3yr":18.87,"ann_5yr":7.37,"ann_10yr":12.35,"yr1":30.72,"yr2":9.95,"yr3":2.11,"yr4":-12.15,"yr5":-3.55},{"name":"Unicorn Mastertrust B Inc","value":150.87,"book_cost":101.53,"gain_gbp":49.34,"gain_pct":48.59,"perf_1yr":22.81,"perf_3yr":42.68,"perf_5yr":46.68,"perf_10yr":164.55,"ann_1yr":22.81,"ann_3yr":12.59,"ann_5yr":7.97,"ann_10yr":10.21,"yr1":20.79,"yr2":9.52,"yr3":6.78,"yr4":-13.59,"yr5":15.65},{"name":"Vanguard FTSE UK Equity Income Index GBP Acc","value":1119.11,"book_cost":1000.0,"gain_gbp":119.11,"gain_pct":11.91,"perf_1yr":40.18,"perf_3yr":65.98,"perf_5yr":125.31,"perf_10yr":155.34,"ann_1yr":40.18,"ann_3yr":18.45,"ann_5yr":17.6,"ann_10yr":9.82,"yr1":31.19,"yr2":12.66,"yr3":6.19,"yr4":7.69,"yr5":18.89},{"name":"Veritas Asian A GBP","value":1154.98,"book_cost":1000.0,"gain_gbp":154.98,"gain_pct":15.49,"perf_1yr":51.92,"perf_3yr":52.51,"perf_5yr":22.63,"perf_10yr":242.58,"ann_1yr":51.92,"ann_3yr":15.11,"ann_5yr":4.16,"ann_10yr":13.1,"yr1":29.52,"yr2":7.9,"yr3":-10.87,"yr4":-17.8,"yr5":-0.92},{"name":"WS Amati Strategic Metals B Acc","value":1306.85,"book_cost":1000.0,"gain_gbp":306.85,"gain_pct":30.68,"perf_1yr":206.52,"perf_3yr":149.43,"perf_5yr":null,"perf_10yr":null,"ann_1yr":206.52,"ann_3yr":35.62,"ann_5yr":null,"ann_10yr":null,"yr1":162.09,"yr2":-7.1,"yr3":-19.65,"yr4":-5.11,"yr5":null},{"name":"WS Ardtur Continental European P Inst Acc","value":1130.46,"book_cost":1000.0,"gain_gbp":130.46,"gain_pct":13.04,"perf_1yr":42.02,"perf_3yr":65.7,"perf_5yr":131.38,"perf_10yr":274.77,"ann_1yr":42.02,"ann_3yr":18.33,"ann_5yr":18.27,"ann_10yr":14.12,"yr1":41.27,"yr2":-1.34,"yr3":17.6,"yr4":12.32,"yr5":15.69},{"name":"WS Blue Whale Growth R Inc","value":1107.84,"book_cost":1000.0,"gain_gbp":107.84,"gain_pct":10.78,"perf_1yr":40.28,"perf_3yr":122.0,"perf_5yr":116.02,"perf_10yr":null,"ann_1yr":40.28,"ann_3yr":30.32,"ann_5yr":16.59,"ann_10yr":null,"yr1":28.11,"yr2":27.9,"yr3":30.34,"yr4":-27.77,"yr5":20.53}];
+
+let funds=[], annSortCol=0, annSortDir=-1;
+
+function short(n){return n.replace(/ Fund| Accumulation| Acc| Inc| Class I| Class B| GBP| \(UK\)/gi,'').replace(/\s+/g,' ').trim().slice(0,42)}
+function fmtPct(v){
+  if(v===null||v===undefined)return '<span class="cell-na">—</span>';
+  return `<span class="${v>=0?'cell-pos':'cell-neg'}">${v>=0?'+':''}${Number(v).toFixed(1)}%</span>`;
+}
+function heatColor(v){
+  if(v===null)return 'background:rgba(255,255,255,.05)';
+  if(v>=30)return 'background:rgba(61,186,126,.65)';
+  if(v>=15)return 'background:rgba(61,186,126,.38)';
+  if(v>=5)return 'background:rgba(61,186,126,.2)';
+  if(v>=0)return 'background:rgba(61,186,126,.08)';
+  if(v>=-10)return 'background:rgba(224,82,82,.28)';
+  return 'background:rgba(224,82,82,.58)';
+}
+
+function render(data){
+  funds=[...data].sort((a,b)=>b.gain_pct-a.gain_pct);
+  const pcts=funds.map(f=>f.gain_pct).filter(v=>v!==null);
+  const avg=(pcts.reduce((a,b)=>a+b,0)/pcts.length).toFixed(1);
+  const pos=funds.filter(f=>f.gain_pct>0).length;
+  const neg=funds.filter(f=>f.gain_pct<0).length;
+  const over50=funds.filter(f=>f.gain_pct>=50).length;
+  const sp=[...pcts].sort((a,b)=>a-b);
+  const median=sp[Math.floor(sp.length/2)].toFixed(1);
+
+  document.getElementById('top-pct').textContent='+'+funds[0].gain_pct.toFixed(1)+'%';
+  document.getElementById('k-avg').textContent=(avg>0?'+':'')+avg+'%';
+  document.getElementById('k-count').textContent=funds.length+' holdings';
+  document.getElementById('k-pos').textContent=pos;
+  document.getElementById('k-pos-sub').textContent=Math.round(pos/funds.length*100)+'% of holdings';
+  document.getElementById('k-neg').textContent=neg;
+  document.getElementById('k-neg-sub').textContent=neg+' underwater';
+  document.getElementById('k-over50').textContent=over50;
+  document.getElementById('k-median').textContent=(median>0?'+':'')+median+'%';
+
+  // podium
+  const podEl=document.getElementById('podium');podEl.innerHTML='';
+  ['p1','p2','p3'].forEach((cls,i)=>{
+    const f=funds[i],lb=['🥇 Gold — #1','🥈 Silver — #2','🥉 Bronze — #3'];
+    podEl.innerHTML+=`<div class="pod ${cls}">
+      <div class="pod-ghost">${i+1}</div>
+      <div class="pod-medal">${lb[i]}</div>
+      <div class="pod-pct">+${f.gain_pct.toFixed(1)}%</div>
+      <div class="pod-name">${short(f.name)}</div>
+      <div class="pod-stats">
+        <div class="pod-stat"><div class="pod-stat-val">£${f.gain_gbp.toFixed(0)}</div><div class="pod-stat-lbl">£ gain</div></div>
+        <div class="pod-stat"><div class="pod-stat-val">£${f.value.toFixed(0)}</div><div class="pod-stat-lbl">value</div></div>
+        <div class="pod-stat"><div class="pod-stat-val">£${f.book_cost.toFixed(0)}</div><div class="pod-stat-lbl">cost</div></div>
+        ${f.perf_1yr?`<div class="pod-stat"><div class="pod-stat-val">${f.perf_1yr>0?'+':''}${f.perf_1yr}%</div><div class="pod-stat-lbl">1-yr</div></div>`:''}
+      </div></div>`;
+  });
+
+  // callout
+  const nf=funds.filter(f=>f.gain_pct<0).map(f=>`${short(f.name)} (${f.gain_pct.toFixed(1)}%)`).join(', ');
+  document.getElementById('callout').innerHTML=`<strong>${short(funds[0].name)}</strong> leads at <strong>+${funds[0].gain_pct.toFixed(1)}%</strong>.
+    <strong>${short(funds[1].name)} (+${funds[1].gain_pct.toFixed(1)}%)</strong> and <strong>${short(funds[2].name)} (+${funds[2].gain_pct.toFixed(1)}%)</strong> complete the top three.
+    ${neg>0?`Only <strong>${neg}</strong> holding${neg!==1?'s':''} underwater: ${nf}.`:'All holdings in profit since inception.'}`;
+
+  // bar chart
+  const maxP=funds[0].gain_pct;let rows='';
+  funds.forEach((f,i)=>{
+    const p=f.gain_pct,w=Math.abs(p)/Math.abs(maxP)*100,lss=p<0,hi=p>50;
+    const rc=i<8?'top':i<funds.length-3?'mid':'bot';
+    rows+=`<div class="bc-row${lss?' loss':''}" style="animation-delay:${Math.min(i*.025,.8)}s" data-rank="${i}" data-pct="${p}">
+      <div class="bc-name-wrap"><span class="rank-badge ${rc}">${i+1}</span><span class="bc-name" title="${f.name}">${short(f.name)}</span></div>
+      <div class="bc-track"><div class="bc-fill ${lss?'neg':hi?'hi':'pos'}" style="width:${w}%"></div></div>
+      <div class="bc-pct ${lss?'neg':'pos'}">${p>0?'+':''}${p.toFixed(1)}%</div>
+      <div class="bc-gbp">${f.gain_gbp>=0?'+':'-'}£${Math.abs(f.gain_gbp).toFixed(0)}</div>
+    </div>`;
+  });
+  document.getElementById('bar-chart-rows').innerHTML=rows;
+
+  // ann table
+  annSortCol=0;annSortDir=-1;renderAnnTable();
+
+  // quadrants
+  const qEl=document.getElementById('quads');qEl.innerHTML='';
+  [{cls:'best',title:'⭐ Exceptional +50%+',items:funds.filter(f=>f.gain_pct>=50)},
+   {cls:'solid',title:'✅ Solid +20% to +50%',items:funds.filter(f=>f.gain_pct>=20&&f.gain_pct<50)},
+   {cls:'up-now',title:'🔸 Modest 0% to +20%',items:funds.filter(f=>f.gain_pct>=0&&f.gain_pct<20)},
+   {cls:'worst',title:'🔻 Losses since inception',items:funds.filter(f=>f.gain_pct<0)}
+  ].forEach(q=>{
+    const vc=q.cls==='worst'?'r':q.cls==='best'?'a':q.cls==='solid'?'g':'t';
+    qEl.innerHTML+=`<div class="quad-card ${q.cls}"><div class="quad-title">${q.title} (${q.items.length})</div>
+      ${q.items.map(f=>`<div class="quad-item"><div class="qi-name" title="${f.name}">${short(f.name)}</div>
+        <div class="qi-val ${vc}">${f.gain_pct>0?'+':''}${f.gain_pct.toFixed(1)}%</div></div>`).join('')}</div>`;
+  });
+
+  // full table
+  const tbl=document.getElementById('full-tbl');tbl.innerHTML='';
+  funds.forEach((f,i)=>{
+    const cls=f.gain_pct>=0?'cell-pos':'cell-neg';
+    const bw=Math.min(Math.abs(f.gain_pct)/Math.abs(maxP)*100,100);
+    const bc=f.gain_pct>50?'h':f.gain_pct>=0?'p':'n';
+    tbl.innerHTML+=`<tr>
+      <td class="tbl-rank">#${i+1}</td>
+      <td style="font-size:11px">${short(f.name)}</td>
+      <td><div class="ib-wrap"><div class="ib-track"><div class="ib-fill ${bc}" style="width:${bw}%"></div></div>
+        <span class="${cls} mn">${f.gain_pct>=0?'+':''}${f.gain_pct.toFixed(1)}%</span></div></td>
+      <td class="${cls} mn">£${f.gain_gbp>=0?'':'-'}${Math.abs(f.gain_gbp).toFixed(0)}</td>
+      <td class="mnr">£${f.value.toFixed(0)}</td>
+      <td class="mnrm">£${f.book_cost.toFixed(0)}</td>
+      <td>${fmtPct(f.perf_1yr)}</td><td>${fmtPct(f.perf_3yr)}</td><td>${fmtPct(f.perf_5yr)}</td>
+    </tr>`;
+  });
+}
+
+// ann view: 'ann' = annualised cols, 'yr' = individual annual return cols
+let annView='ann';
+const VIEWS={
+  ann:{cols:[f=>f.ann_1yr,f=>f.ann_3yr,f=>f.ann_5yr,f=>f.ann_10yr],
+       heads:['1yr Ann','3yr Ann','5yr Ann','10yr Ann']},
+  yr:{cols:[f=>f.yr1,f=>f.yr2,f=>f.yr3,f=>f.yr4,f=>f.yr5],
+      heads:['Year 1','Year 2','Year 3','Year 4','Year 5']}
+};
+function switchAnnView(v){
+  annView=v;annSortCol=0;annSortDir=-1;
+  document.getElementById('tab-ann').className='ann-tab'+(v==='ann'?' active':'');
+  document.getElementById('tab-yr').className='ann-tab'+(v==='yr'?' active':'');
+  rebuildAnnHead();renderAnnTable();
+}
+function rebuildAnnHead(){
+  const view=VIEWS[annView];
+  const thead=document.getElementById('ann-thead');
+  thead.innerHTML='<tr><th style="min-width:160px">Fund</th>'+
+    view.heads.map((h,i)=>`<th class="num" onclick="sortAnn(${i})">${h} <span class="sort-arrow${i===annSortCol?' active':''}" id="sa${i}">${i===annSortCol?(annSortDir===-1?'▼':'▲'):'▼'}</span></th>`).join('')+'</tr>';
+}
+function renderAnnTable(){
+  rebuildAnnHead();
+  const view=VIEWS[annView];
+  const sorted=[...funds].sort((a,b)=>{
+    const av=view.cols[annSortCol](a),bv=view.cols[annSortCol](b);
+    if(av===null&&bv===null)return 0;
+    if(av===null)return 1;if(bv===null)return -1;
+    return(bv-av)*annSortDir;
+  });
+  const tb=document.getElementById('ann-tbody');tb.innerHTML='';
+  sorted.forEach(f=>{
+    const vals=view.cols.map(col=>col(f));
+    tb.innerHTML+=`<tr><td class="mn">${short(f.name)}</td>
+      ${vals.map(v=>`<td class="num"><div class="heat-wrap">
+        <div class="heat-bar" style="${heatColor(v)}"></div>
+        ${v===null?'<span class="cell-na">—</span>':`<span class="${v>=0?'cell-pos':'cell-neg'}">${v>=0?'+':''}${Number(v).toFixed(1)}%</span>`}
+      </div></td>`).join('')}</tr>`;
+  });
+}
+function sortAnn(col){
+  if(annSortCol===col)annSortDir*=-1;else{annSortCol=col;annSortDir=-1;}
+  renderAnnTable();
+}
+
+function filterChart(mode,btn){
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.querySelectorAll('.bc-row').forEach(row=>{
+    const rank=+row.dataset.rank,pct=+row.dataset.pct;let show=true;
+    if(mode==='top10'&&rank>=10)show=false;
+    if(mode==='pos'&&pct<=0)show=false;
+    if(mode==='neg'&&pct>=0)show=false;
+    if(mode==='under10'&&(pct>=10||pct<0))show=false;
+    row.style.display=show?'':'none';
+  });
+}
+
+const zone=document.getElementById('upload-zone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag')});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+function setStatus(msg,type){const el=document.getElementById('upload-status');el.textContent=msg;el.className='upload-status '+type;el.style.display='block'}
+function safeNum(v){return typeof v==='number'?v:null}
+function handleFile(file){
+  if(!file)return;
+  if(!file.name.match(/\.xlsx?$/i)){setStatus('❌ Please upload an .xlsx or .xls file.','err');return}
+  setStatus('⏳ Reading file…','loading');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+      let dataStart=4;
+      for(let i=0;i<rows.length;i++){if(rows[i]&&rows[i][0]==='Fidelity Fund Name'){dataStart=i+1;break}}
+      const parsed=[];
+      for(let i=dataStart;i<rows.length;i++){
+        const r=rows[i];
+        if(!r||!r[0]||typeof r[0]!=='string'||!r[5])continue;
+        parsed.push({name:r[0],value:safeNum(r[5]),book_cost:safeNum(r[7]),
+          gain_gbp:safeNum(r[14]),gain_pct:safeNum(r[15]),
+          perf_1yr:safeNum(r[18]),perf_3yr:safeNum(r[19]),perf_5yr:safeNum(r[20]),perf_10yr:safeNum(r[21]),
+          ann_1yr:safeNum(r[23]),ann_3yr:safeNum(r[24]),ann_5yr:safeNum(r[25]),ann_10yr:safeNum(r[26]),
+          yr1:safeNum(r[28]),yr2:safeNum(r[29]),yr3:safeNum(r[30]),yr4:safeNum(r[31]),yr5:safeNum(r[32])});
+      }
+      if(!parsed.length){setStatus('❌ No fund data found. Check the file format.','err');return}
+      render(parsed);
+      const hdr=(rows[0]?.[0]||'').toString().replace('Prices and valuations updated at','').trim();
+      document.getElementById('hd-meta').textContent=parsed.length+' holdings';
+      setStatus(`✅ Dashboard updated — ${parsed.length} holdings loaded from "${file.name}"`, 'ok');
+    }catch(err){setStatus('❌ Error: '+err.message,'err')}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+render(DEFAULT);
+</script>
+</body>
+</html>
